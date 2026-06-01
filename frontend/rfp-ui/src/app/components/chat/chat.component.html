@@ -1,0 +1,177 @@
+<div class="flex flex-col h-full">
+
+  <!-- Header -->
+  <div
+    class="flex items-center justify-between gap-3 shrink-0"
+  >
+
+    <div>
+
+      <h2
+        class="text-xl font-semibold tracking-tight text-white"
+      >
+        Chat With RFP
+      </h2>
+
+      <p
+        class="mt-1 text-sm text-slate-300"
+      >
+        Ask about scope, risks, timeline, compliance, or request summaries.
+      </p>
+
+    </div>
+
+  </div>
+
+  <!-- Main Chat Wrapper -->
+  <div
+    class="chat-wrap flex flex-col flex-1 mt-4 rounded-2xl border border-white/10 bg-slate-900/40 backdrop-blur-sm min-h-0"
+  >
+
+    <!-- Empty State -->
+    <div
+      *ngIf="messages.length === 0"
+      class="flex flex-1 flex-col items-center justify-center px-6 text-center"
+    >
+
+      <div
+        class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-sky-500/10"
+      >
+
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-8 w-8 text-sky-400"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="1.8"
+            d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-4l-4 4v-4z"
+          />
+
+        </svg>
+
+      </div>
+
+      <h3
+        class="text-base font-medium text-white"
+      >
+        Start chatting with your RFP
+      </h3>
+
+      <p
+        class="mt-2 max-w-md text-sm leading-relaxed text-slate-400"
+      >
+        Upload a document and ask questions about requirements,
+        compliance, deliverables, timelines, summaries, and risks.
+      </p>
+
+    </div>
+
+    <!-- Messages -->
+    <div
+      *ngIf="messages.length > 0"
+      #messagesContainer
+      class="chat-messages-container px-4 py-5"
+    >
+
+      <div
+        class="flex flex-col gap-5"
+      >
+
+        <div
+          *ngFor="let msg of messages"
+          class="flex"
+          [ngClass]="{
+            'justify-end': msg.role === 'user',
+            'justify-start': msg.role === 'assistant'
+          }"
+        >
+
+          <!-- Bubble -->
+          <div
+            class="message-bubble max-w-[85%] rounded-2xl px-4 py-3 text-sm transition-all duration-200"
+            [ngClass]="{
+              'bg-gradient-to-br from-sky-500 to-blue-600 text-white shadow-lg shadow-sky-500/20':
+                msg.role === 'user',
+
+              'bg-slate-800/95 text-slate-100 border border-white/5':
+                msg.role === 'assistant'
+            }"
+          >
+
+            <!-- Markdown Render -->
+            <div
+              class="markdown-content break-words leading-relaxed"
+              [innerHTML]="formatMessage(msg.content)"
+            ></div>
+
+          </div>
+
+        </div>
+
+        <!-- Typing -->
+        <div
+          *ngIf="loading"
+          class="flex items-center gap-2 px-1 text-sm italic text-slate-400"
+        >
+
+          <div
+            class="h-2 w-2 animate-pulse rounded-full bg-sky-400"
+          ></div>
+
+          <span>
+            AI is typing...
+          </span>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Input Area -->
+    <div
+      class="shrink-0 border-t border-white/10 px-4 py-3 mt-auto"
+    >
+
+      <div
+        class="flex flex-col gap-3 sm:flex-row sm:items-center"
+      >
+
+        <!-- Chat Input -->
+        <input
+          [(ngModel)]="question"
+          placeholder="Ask a question..."
+          class="chat-input w-full flex-1 rounded-lg px-4 py-3 text-sm text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+          (keyup.enter)="askQuestion()"
+        />
+
+        <!-- Ask Button -->
+        <button
+          class="chat-btn inline-flex w-full items-center justify-center rounded-lg px-5 py-3 text-sm font-medium shadow-soft transition hover:brightness-105 active:scale-[0.99] disabled:opacity-60 sm:w-auto"
+          (click)="askQuestion()"
+          [disabled]="loading"
+        >
+
+          <span *ngIf="!loading">
+            Ask
+          </span>
+
+          <span *ngIf="loading">
+            Thinking...
+          </span>
+
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>

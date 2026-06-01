@@ -1,0 +1,142 @@
+<div class="space-y-4">
+  <div class="flex items-start justify-between gap-4">
+    <div>
+      <h2 class="text-lg font-semibold text-white">Report</h2>
+      <p class="mt-1 text-sm text-slate-300">
+        Export the latest analyzed report (DOCX/PDF). Note: the backend stores the latest report in memory.
+      </p>
+    </div>
+
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+      <button
+        class="upload-action inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium shadow-soft transition hover:brightness-105 active:scale-[0.99] disabled:opacity-60"
+        [disabled]="exporting"
+        (click)="downloadDocx()"
+      >
+        <span *ngIf="!exporting">Download DOCX</span>
+        <span *ngIf="exporting">Exporting…</span>
+      </button>
+
+      <button
+        class="upload-action inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium shadow-soft transition hover:brightness-105 active:scale-[0.99] disabled:opacity-60"
+        [disabled]="exporting"
+        (click)="downloadPdf()"
+      >
+        Download PDF
+      </button>
+    </div>
+  </div>
+
+  <div
+    *ngIf="exportError"
+    class="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-200"
+  >
+    {{ exportError }}
+  </div>
+
+  <div class="rounded-xl border border-white/10 bg-slate-900/30 p-4">
+    <!-- Preview Header (always visible) -->
+    <div class="preview-toggle" (click)="togglePreview()">
+      <h3 class="text-sm font-semibold text-slate-200 preview-label">Preview</h3>
+      <svg
+        class="toggle-icon"
+        [class.collapsed]="previewCollapsed"
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <polyline points="6 9 12 15 18 9"></polyline>
+      </svg>
+    </div>
+
+    <!-- Preview Body (Angular structural directive — removes from DOM when collapsed) -->
+    <ng-container *ngIf="!previewCollapsed">
+      <ng-container *ngIf="latestReport; else emptyStateTpl">
+        <div class="mt-3 space-y-6">
+
+          <!-- Executive Summary -->
+          <div *ngIf="latestReport?.summary?.length">
+            <div class="report-section-title text-sm text-white border-b border-white/10 pb-1 mb-3">Executive Summary</div>
+            <div class="mt-2 report-body whitespace-pre-wrap">
+              {{ getSummaryText() }}
+            </div>
+          </div>
+
+          <!-- Scope of Work -->
+          <div *ngIf="latestReport?.scope_of_work?.length">
+            <div class="report-section-title text-sm text-white border-b border-white/10 pb-1 mb-3">Scope of Work</div>
+            <ul class="mt-2 list-disc pl-5 text-sm text-slate-200 space-y-1.5">
+              <li *ngFor="let item of latestReport.scope_of_work">
+                {{ formatItem(item) }}
+              </li>
+            </ul>
+          </div>
+
+          <!-- Deliverables -->
+          <div *ngIf="latestReport?.deliverables?.length">
+            <div class="report-section-title text-sm text-white border-b border-white/10 pb-1 mb-3">Deliverables</div>
+            <ul class="mt-2 list-disc pl-5 text-sm text-slate-200 space-y-1.5">
+              <li *ngFor="let item of latestReport.deliverables">
+                {{ formatItem(item) }}
+              </li>
+            </ul>
+          </div>
+
+          <!-- Objectives -->
+          <div *ngIf="latestReport?.objectives?.length">
+            <div class="report-section-title text-sm text-white border-b border-white/10 pb-1 mb-3">Objectives</div>
+            <ul class="mt-2 list-disc pl-5 text-sm text-slate-200 space-y-1.5">
+              <li *ngFor="let item of latestReport.objectives">
+                {{ formatItem(item) }}
+              </li>
+            </ul>
+          </div>
+
+          <!-- Deadlines -->
+          <div *ngIf="latestReport?.deadlines?.length">
+            <div class="report-section-title text-sm text-white border-b border-white/10 pb-1 mb-3">Deadlines</div>
+            <ul class="mt-2 list-disc pl-5 text-sm text-slate-200 space-y-1.5">
+              <li *ngFor="let item of latestReport.deadlines">
+                {{ formatItem(item) }}
+              </li>
+            </ul>
+          </div>
+
+          <!-- Staffing Requirements -->
+          <div *ngIf="latestReport?.staffing_requirements?.length">
+            <div class="report-section-title text-sm text-white border-b border-white/10 pb-1 mb-3">Staffing Requirements</div>
+            <ul class="mt-2 list-disc pl-5 text-sm text-slate-200 space-y-1.5">
+              <li *ngFor="let item of latestReport.staffing_requirements">
+                {{ formatItem(item) }}
+              </li>
+            </ul>
+          </div>
+
+          <!-- Compliance Items -->
+          <div *ngIf="latestReport?.compliance_items?.length">
+            <div class="report-section-title text-sm text-white border-b border-white/10 pb-1 mb-3">Compliance Items</div>
+            <ul class="mt-2 list-disc pl-5 text-sm text-slate-200 space-y-1.5">
+              <li *ngFor="let item of latestReport.compliance_items">
+                {{ formatItem(item) }}
+              </li>
+            </ul>
+          </div>
+
+        </div>
+      </ng-container>
+
+      <ng-template #emptyStateTpl>
+        <div class="mt-3 text-sm text-slate-400">
+          Upload an RFP to generate a report. Preview will appear here when the client receives the report JSON.
+        </div>
+      </ng-template>
+    </ng-container>
+
+  </div>
+</div>

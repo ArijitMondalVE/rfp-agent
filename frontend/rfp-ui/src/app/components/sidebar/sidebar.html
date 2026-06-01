@@ -1,0 +1,51 @@
+<div class="min-h-screen bg-slate-950 text-slate-100">
+  <aside class="fixed left-0 top-0 h-full w-72 border-r border-white/10 bg-slate-950/60 backdrop-blur">
+    <div class="flex h-full flex-col">
+      <!-- Brand -->
+      <div class="px-6 py-6 border-b border-white/10">
+        <div class="text-xl font-semibold tracking-tight">RFP Intelligence Agent</div>
+        <div class="mt-1 text-sm text-slate-300">Upload an RFP and ask questions—powered by RAG.</div>
+      </div>
+
+      <!-- Nav -->
+      <nav class="flex-1 px-3 py-4 space-y-2">
+        <button
+          class="w-full rounded-xl px-4 py-3 text-left text-sm font-medium border border-white/10 bg-slate-900/30 hover:bg-slate-900/50"
+        >
+          Upload RFP
+        </button>
+        <button
+          class="w-full rounded-xl px-4 py-3 text-left text-sm font-medium border border-white/10 bg-slate-900/30 hover:bg-slate-900/50"
+        >
+          Chat With RFP
+        </button>
+      </nav>
+
+      <!-- Footer -->
+      <div class="px-6 py-4 text-xs text-slate-400 border-t border-white/10">
+        Built for RFP exploration.
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main content area (keeps current layout working) -->
+  <div class="ml-72">
+    <header class="relative overflow-hidden border-b border-white/10 bg-gradient-to-b from-sky-500/20 via-indigo-500/10 to-transparent">
+      <div class="mx-auto max-w-5xl px-4 py-6">
+        <h1 class="text-2xl font-semibold tracking-tight sm:text-3xl">RFP Intelligence Agent</h1>
+        <p class="mt-1 text-sm text-slate-300">Upload an RFP and ask questions—powered by RAG.</p>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-5xl px-4 py-8 space-y-8">
+      <section class="rounded-2xl border border-white/10 bg-slate-900/40 shadow-soft p-6">
+        <app-upload></app-upload>
+      </section>
+
+      <section class="rounded-2xl border border-white/10 bg-slate-900/40 shadow-soft p-6">
+        <app-chat></app-chat>
+      </section>
+    </main>
+  </div>
+</div>
+

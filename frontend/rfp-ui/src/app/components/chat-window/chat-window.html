@@ -1,0 +1,172 @@
+<div class="history-sidebar">
+
+  <!-- Header -->
+  <div class="history-header">
+
+    <h2 class="history-heading">
+      Chats
+    </h2>
+
+    <div class="header-buttons">
+      <button
+        class="clear-all-btn"
+        (click)="clearAllChats()"
+        title="Clear all chats"
+        *ngIf="chats.length > 0"
+      >
+        Clear All
+      </button>
+
+      <button
+        class="new-chat-btn"
+        (click)="createNewChat()"
+        title="Start new chat"
+      >
+        +
+      </button>
+    </div>
+
+  </div>
+
+  <!-- Empty State -->
+  <div
+    *ngIf="!loading && chats.length === 0"
+    class="history-empty"
+  >
+
+    No chats yet.
+
+  </div>
+
+  <!-- Loading -->
+  <div
+    *ngIf="loading"
+    class="history-empty"
+  >
+
+    Loading chats...
+
+  </div>
+
+  <!-- Chat List -->
+  <div
+    *ngIf="!loading && chats.length > 0"
+    class="history-list"
+  >
+
+    <div
+      *ngFor="let chat of chats"
+      class="history-card"
+      [class.active]="
+        sessionId === chat.session_id
+      "
+      (click)="selectChat(chat)"
+    >
+
+      <!-- Chat Title (editing mode) -->
+      <input
+        *ngIf="editingChatId === chat.session_id"
+        class="rename-input"
+        [value]="editingChatTitle"
+        (click)="$event.stopPropagation()"
+        (input)="onRenameInput(chat, $event)"
+        (blur)="onRenameBlur(chat, $event)"
+        (keydown)="onRenameKeydown(chat, $event)"
+      />
+
+      <!-- Chat Title (display mode) -->
+      <h3
+        *ngIf="editingChatId !== chat.session_id"
+        class="history-title"
+        (dblclick)="startRenameChat(chat, $event)"
+      >
+        {{
+          chat.title ||
+          'Untitled Chat'
+        }}
+      </h3>
+
+      <!-- Preview -->
+      <p class="history-preview">
+        {{
+          chat.preview ||
+          'No preview available'
+        }}
+      </p>
+
+      <!-- Rename Button -->
+      <button
+        class="rename-chat-btn"
+        (click)="startRenameChat(chat, $event)"
+        title="Rename chat"
+      >
+        ✎
+      </button>
+
+      <!-- Delete Button -->
+      <button
+        class="delete-chat-btn"
+        (click)="deleteChat(chat, $event)"
+        title="Delete chat"
+      >
+        ×
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div
+  class="modal-backdrop"
+  *ngIf="showDeleteConfirm"
+  (click)="closeDeleteModal()"
+>
+  <div class="modal-card" (click)="$event.stopPropagation()">
+
+    <!-- Icon -->
+    <div class="modal-icon" [class.clear-all]="clearAllMode">
+      <svg *ngIf="!clearAllMode" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
+      </svg>
+      <svg *ngIf="clearAllMode" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 6h18"></path>
+        <path d="M8 6V4h8v2"></path>
+        <path d="M5 6l1 14h12l1-14"></path>
+      </svg>
+    </div>
+
+    <!-- Title -->
+    <h2 class="modal-title">
+      {{ clearAllMode ? 'Clear All Chats?' : 'Delete Chat?' }}
+    </h2>
+
+    <!-- Description -->
+    <p class="modal-desc">
+      {{ clearAllMode
+        ? 'This will permanently delete all your chat history. This action cannot be undone.'
+        : 'This will permanently delete &quot;' + (chatToDelete?.title || 'Untitled Chat') + '&quot;. This action cannot be undone.' }}
+    </p>
+
+    <!-- Actions -->
+    <div class="modal-actions">
+      <button
+        class="modal-btn modal-btn-cancel"
+        (click)="closeDeleteModal()"
+      >
+        Cancel
+      </button>
+      <button
+        class="modal-btn modal-btn-delete"
+        [class.clear-all]="clearAllMode"
+        (click)="clearAllMode ? confirmClearAll() : confirmDelete()"
+      >
+        {{ clearAllMode ? 'Clear All' : 'Delete' }}
+      </button>
+    </div>
+
+  </div>
+</div>

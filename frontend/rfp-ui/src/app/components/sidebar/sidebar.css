@@ -1,0 +1,77 @@
+/* Sidebar component-specific styles.
+   Uses Tailwind utility classes in the template; this file enhances/overrides for polish.
+*/
+
+/* Make the fixed sidebar buttons feel consistent (even if Tailwind is adjusted later). */
+:host {
+  display: block;
+}
+
+/* Nav button styling hooks */
+:host button {
+  /* ensure keyboard focus is visible */
+  outline: none;
+}
+
+:host button:focus-visible {
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.28);
+}
+
+/* Hover/active are largely handled by Tailwind; these add a bit more depth. */
+:host nav button:hover {
+  border-color: rgba(255, 255, 255, 0.18) !important;
+}
+
+:host nav button:active {
+  transform: translateY(1px) scale(0.99);
+}
+
+/* Improve main offset for the fixed sidebar.
+   Template uses .ml-72; on narrow screens we switch layout below.
+*/
+:host .sidebar-offset {
+  margin-left: 18rem;
+}
+
+/* If you later decide to use .sidebar-offset, this keeps layout consistent.
+   For now, template uses Tailwind ml-72.
+*/
+
+@media (max-width: 900px) {
+  /* Slightly smaller sidebar */
+  :host aside {
+    width: 18rem;
+  }
+  :host .ml-72 {
+    margin-left: 18rem;
+  }
+}
+
+@media (max-width: 640px) {
+  /* Collapse into a stacked layout on small screens */
+  :host .min-h-screen {
+    /* let content define height */
+  }
+
+  :host aside {
+    position: sticky;
+    width: 100%;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+  }
+
+  :host .ml-72 {
+    margin-left: 0 !important;
+  }
+
+  :host header {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  :host nav {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+}
+

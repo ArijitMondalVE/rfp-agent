@@ -1,0 +1,273 @@
+/* Base global tweaks */
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+button {
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease;
+}
+
+button:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+
+button:active {
+  transform: translateY(0px) scale(0.99);
+}
+
+
+body {
+  margin: 0;
+  background: rgb(1, 18, 38);
+}
+
+/* Modern global styling */
+:root {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::selection {
+  background: rgba(56, 189, 248, 0.25);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+.shadow-soft {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+
+/* ---- Font Variables ---- */
+:root {
+  --font-ui: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-body: "Merriweather", Georgia, "Times New Roman", serif;
+}
+
+/* ---- Report content uses serif for readability ---- */
+.report-body {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  line-height: 1.75;
+  color: rgba(226, 232, 240, 0.92);
+}
+
+/* ---- Component CSS (moved to global to ensure it loads) ---- */
+
+/* File input chooser text color */
+.upload-input::file-selector-button {
+  color: #e2e8f0;
+  background: rgba(56, 189, 248, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease;
+}
+
+.upload-input::file-selector-button:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.26);
+}
+
+.upload-input::file-selector-button:active {
+  transform: translateY(0px) scale(0.99);
+}
+
+
+.chat-wrap {
+  height: 100%;
+  min-height: 0;
+  border-radius: 18px;
+  background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), transparent 50%),
+    radial-gradient(circle at bottom right, rgba(99, 102, 241, 0.18), transparent 45%),
+    rgba(2, 6, 23, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.22);
+}
+
+.chat-input {
+  background: rgba(2, 6, 23, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.chat-answer {
+  line-height: 1.55;
+  color: rgba(226, 232, 240, 0.96);
+}
+
+.chat-answer code {
+  padding: 0.15rem 0.35rem;
+  border-radius: 8px;
+  background: rgba(2, 6, 23, 0.6);
+}
+
+.chat-btn {
+  background: linear-gradient(90deg, #22c55e 0%, #38bdf8 100%);
+  color: #07121a;
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease;
+  will-change: transform;
+}
+
+.chat-btn:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.26);
+}
+
+.chat-btn:active {
+  transform: translateY(0px) scale(0.99);
+}
+
+
+.upload-card {
+  border-radius: 18px;
+}
+
+.upload-card {
+  background: linear-gradient(180deg, rgba(2, 132, 199, 0.10) 0%, rgba(2, 132, 199, 0.04) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.22);
+}
+
+.upload-action {
+  background: linear-gradient(90deg, #38bdf8 0%, #6366f1 100%);
+  color: #0b1220;
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease;
+  will-change: transform;
+}
+
+.upload-action:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.26);
+}
+
+.upload-action:active {
+  transform: translateY(0px) scale(0.99);
+}
+
+
+.upload-hint {
+  color: rgba(226, 232, 240, 0.82);
+}
+
+.upload-input {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(15, 23, 42, 0.45);
+}
+
+/* ---- Sidebar scrollable sections ---- */
+.sidebar-upload-section {
+  padding: 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.sidebar-docs-section {
+  padding: 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  overflow-y: auto;
+  max-height: 220px;
+  flex-shrink: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+}
+
+.sidebar-docs-section::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-docs-section::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+}
+
+.sidebar-chat-section {
+  max-height: 280px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+}
+
+.sidebar-chat-section::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-chat-section::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+}
+
+/* ---- Right panel scrollable sections ---- */
+.report-panel {
+  flex-shrink: 0;
+  max-height: 42vh;
+  overflow-y: auto;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+}
+
+.report-panel::-webkit-scrollbar {
+  width: 4px;
+}
+
+.report-panel::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+}
+
+.chat-section {
+  flex: 1;
+  overflow: visible;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.chat-section app-chat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.chat-section-inner {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(15, 23, 42, 0.4);
+  overflow: visible;
+  min-height: 0;
+}
+
+.chat-section-inner app-chat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+
+
+
+
+
+

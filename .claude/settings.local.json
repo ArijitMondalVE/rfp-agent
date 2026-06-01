@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(sqlite3 rfp_agent.db \".schema conversations\")",
+      "Bash(python -c \"import sqlite3; conn = sqlite3.connect\\(''rfp_agent.db''\\); cursor = conn.cursor\\(\\); cursor.execute\\(''PRAGMA table_info\\(conversations\\)''\\); print\\([col for col in cursor.fetchall\\(\\)]\\); conn.close\\(\\)\")",
+      "Bash(python -c \":*)",
+      "Bash(curl -s http://127.0.0.1:8000/rfp/sessions)",
+      "Bash(python -c \"from app.services.chat_memory import get_chat_history, get_all_sessions; h = get_chat_history\\(''stream-session''\\); print\\(''History for stream-session:'', len\\(h\\), ''messages''\\); s = get_all_sessions\\(\\); print\\(''Sessions:'', len\\(s\\)\\)\")",
+      "Bash(.venv/Scripts/python -c \"from app.services.chat_memory import get_all_sessions; s = get_all_sessions\\(\\); print\\(''Sessions:'', len\\(s\\)\\); [print\\('' '', x\\) for x in s[:5]]\")",
+      "Bash(uv run python -c \":*)",
+      "Bash(npm run build)"
+    ]
+  }
+}
