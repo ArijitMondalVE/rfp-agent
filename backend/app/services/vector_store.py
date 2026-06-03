@@ -1,16 +1,11 @@
 import uuid
-
+import os
 from langchain_chroma import Chroma
+from langchain_huggingface import HuggingFaceEndpointEmbeddings
 
-from langchain_huggingface import HuggingFaceEmbeddings
-
-from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
-
-# -----------------------------------
-# EMBEDDING MODEL (free, API-based)
-# -----------------------------------
-embeddings = HuggingFaceInferenceAPIEmbeddings(
-    api_key=os.getenv("HF_TOKEN"), model_name="sentence-transformers/all-MiniLM-L6-v2"
+embeddings = HuggingFaceEndpointEmbeddings(
+    model="sentence-transformers/all-MiniLM-L6-v2",
+    huggingfacehub_api_token=os.getenv("HF_TOKEN")
 )
 
 
