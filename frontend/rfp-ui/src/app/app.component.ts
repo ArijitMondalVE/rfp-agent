@@ -1,10 +1,20 @@
-import { Component, ViewChild, ViewEncapsulation, ChangeDetectorRef } from '@angular/core';
+import {
+  Component,
+  ViewChild,
+  ViewEncapsulation,
+  ChangeDetectorRef,
+  ChangeDetectionStrategy,
+  Inject,
+  PLATFORM_ID,
+  
+} from '@angular/core';
 import { UploadComponent } from './components/upload/upload.component';
 import { ChatComponent } from './components/chat/chat.component';
 import { ChatWindow } from './components/chat-window/chat-window';
 import { ReportComponent } from './components/report/report.component';
 import { CommonModule } from '@angular/common';
 import { ApiService } from './services/api.service';
+import { isPlatformBrowser } from '@angular/common';
 
 type RecentDoc = {
   filename: string;
@@ -14,16 +24,11 @@ type RecentDoc = {
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [
-    UploadComponent,
-    ReportComponent,
-    ChatComponent,
-    ChatWindow,
-    CommonModule
-  ],
+  imports: [UploadComponent, ReportComponent, ChatComponent, ChatWindow, CommonModule],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css'],
-  encapsulation: ViewEncapsulation.None
+  encapsulation: ViewEncapsulation.None,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AppComponent {
   @ViewChild('reportComp') reportComp!: ReportComponent;
@@ -46,14 +51,16 @@ export class AppComponent {
 
   private readonly STORAGE_KEY = 'rfp_recent_documents_v1';
 
-
   constructor(
     private cdr: ChangeDetectorRef,
-    private api: ApiService
+    private api: ApiService,
+    @Inject(PLATFORM_ID) private platformId: Object,
   ) {
     this.loadRecentDocuments();
     this.loadSidebarWidth();
-    this.setupResizeListeners();
+    if (isPlatformBrowser(this.platformId)) {
+      this.setupResizeListeners();
+    }
   }
 
   private loadRecentDocuments() {
@@ -81,7 +88,7 @@ export class AppComponent {
           this.recentDocuments = docs
             .map((d: any) => ({
               filename: d.filename || d.name || String(d),
-              uploadedAt: d.uploadedAt || d.created_at || Date.now()
+              uploadedAt: d.uploadedAt || d.created_at || Date.now(),
             }))
             .sort((a: RecentDoc, b: RecentDoc) => b.uploadedAt - a.uploadedAt)
             .slice(0, 10);
@@ -90,7 +97,7 @@ export class AppComponent {
       },
       error: () => {
         // ignore - keep local cache
-      }
+      },
     });
   }
 
@@ -124,46 +131,77 @@ export class AppComponent {
     }
   }
 
+  private animationFrameId: number | null = null;
+
   private resizeStartX = 0;
   private resizeStartWidth = 0;
   private dragWidth = 0;
 
-  startResize(event: MouseEvent) {
+  startResize(event: MouseEvent): void {
     event.preventDefault();
+
     this.isResizing = true;
+
     this.resizeStartX = event.clientX;
     this.resizeStartWidth = this.sidebarWidth;
     this.dragWidth = this.sidebarWidth;
-  }
 
-  private setupResizeListeners() {
-    if (typeof window !== 'undefined') {
-      window.addEventListener('mousemove', this.onResize.bind(this));
-      window.addEventListener('mouseup', this.stopResize.bind(this));
+    if (isPlatformBrowser(this.platformId)) {
+      document.body.classList.add('resizing');
     }
   }
 
-  private onResize(event: MouseEvent) {
+  private setupResizeListeners(): void {
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+
+    window.addEventListener('mousemove', this.onResize);
+
+    window.addEventListener('mouseup', this.stopResize);
+  }
+
+  private onResize = (event: MouseEvent): void => {
     if (!this.isResizing) return;
 
     const delta = event.clientX - this.resizeStartX;
-    const newWidth = this.resizeStartWidth + delta;
 
-    if (newWidth >= this.MIN_SIDEBAR_WIDTH && newWidth <= this.MAX_SIDEBAR_WIDTH) {
-      this.dragWidth = newWidth;
-      // Only update CSS variable - no Angular change detection during drag
-      window.document.documentElement.style.setProperty('--sidebar-width', `${newWidth}px`);
-    }
-  }
+    const width = Math.min(
+      this.MAX_SIDEBAR_WIDTH,
+      Math.max(this.MIN_SIDEBAR_WIDTH, this.resizeStartWidth + delta),
+    );
 
-  stopResize() {
-    if (this.isResizing) {
-      this.isResizing = false;
-      // Sync to Angular state only at the end
+    this.dragWidth = width;
+
+    if (this.animationFrameId !== null) return;
+
+    this.animationFrameId = requestAnimationFrame(() => {
       this.sidebarWidth = this.dragWidth;
-      this.saveSidebarWidth();
+
+      this.animationFrameId = null;
+    });
+  };
+
+  stopResize = (): void => {
+    if (!this.isResizing) return;
+
+    this.isResizing = false;
+
+   if (isPlatformBrowser(this.platformId)) {
+  document.body.classList.remove('resizing');
+}
+
+    this.sidebarWidth = this.dragWidth;
+
+    this.saveSidebarWidth();
+
+    this.cdr.markForCheck();
+
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
     }
-  }
+  };
 
   onDocumentUploaded(result: any) {
     const filename = result?.filename;
@@ -206,6 +244,3 @@ export class AppComponent {
     }
   }
 }
-
-
-

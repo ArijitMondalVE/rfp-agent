@@ -1,15 +1,17 @@
+/* =========================
+   CHAT LAYOUT
+========================= */
+
 .chat-section {
   display: flex;
   flex: 1;
   min-height: 0;
-  overflow: visible;
 }
 
 .chat-section-inner {
   display: flex;
   flex: 1;
   min-height: 0;
-  overflow: visible;
   border-radius: 18px;
 }
 
@@ -20,65 +22,45 @@ app-chat {
   overflow: hidden;
 }
 
-/* Sidebar Resizer */
+/* =========================
+   SIDEBAR
+========================= */
+
 .sidebar-panel {
   width: var(--sidebar-width, 320px);
-  flex-shrink: 0;
-  max-width: 500px;
   min-width: 200px;
+  max-width: 500px;
+  flex-shrink: 0;
 }
 
+.sidebar {
+  flex-shrink: 0;
+}
+
+/* =========================
+   RESIZER
+========================= */
+
 .resizer {
-  width: 20px;
+  width: 6px;
   cursor: col-resize;
   flex-shrink: 0;
-  position: relative;
-  z-index: 10;
-  align-self: stretch;
-  background: rgba(255, 255, 255, 0.05);
   user-select: none;
   -webkit-user-select: none;
-  transition: background 0.15s ease;
-  border-left: 3px solid transparent;
-  border-right: 3px solid transparent;
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .resizer:hover {
-  background: rgba(14, 165, 233, 0.2);
-  border-left-color: rgba(14, 165, 233, 0.3);
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .resizer.resizing {
-  background: rgba(14, 165, 233, 0.25);
-  border-left-color: rgba(14, 165, 233, 0.6);
+  background: rgba(14, 165, 233, 0.4);
 }
 
-.resizer::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 4px;
-  height: 48px;
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 2px;
-  transition: all 0.15s ease;
-}
-
-.resizer:hover::after {
-  background: rgba(14, 165, 233, 0.8);
-  box-shadow: 0 0 12px rgba(14, 165, 233, 0.6);
-  height: 64px;
-  width: 5px;
-}
-
-.resizer.resizing::after {
-  background: rgba(14, 165, 233, 1);
-  box-shadow: 0 0 16px rgba(14, 165, 233, 0.8);
-  height: 80px;
-  width: 6px;
-}
+/* =========================
+   MAIN CONTENT
+========================= */
 
 .main-content {
   flex: 1;
@@ -86,4 +68,3 @@ app-chat {
   display: flex;
   flex-direction: column;
 }
-
