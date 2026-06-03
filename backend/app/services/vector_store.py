@@ -2,18 +2,26 @@ import uuid
 
 from langchain_chroma import Chroma
 
-from langchain_huggingface import (
-    HuggingFaceEmbeddings
-)
+from langchain_huggingface import HuggingFaceEmbeddings
+
+from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
 
 # -----------------------------------
-# EMBEDDING MODEL
+# EMBEDDING MODEL (free, API-based)
 # -----------------------------------
-embeddings = HuggingFaceEmbeddings(
-
-    model_name=
-    "sentence-transformers/all-MiniLM-L6-v2"
+embeddings = HuggingFaceInferenceAPIEmbeddings(
+    api_key=os.getenv("HF_TOKEN"), model_name="sentence-transformers/all-MiniLM-L6-v2"
 )
+
+
+# # -----------------------------------
+# # EMBEDDING MODEL
+# # -----------------------------------
+# embeddings = HuggingFaceEmbeddings(
+
+#     model_name=
+#     "sentence-transformers/all-MiniLM-L6-v2"
+# )
 
 # -----------------------------------
 # GLOBAL VECTOR STORE
@@ -29,18 +37,11 @@ def create_vector_store(chunks):
     global vector_store
 
     # Create unique collection
-    collection_name = (
-        f"rfp_collection_{uuid.uuid4()}"
-    )
+    collection_name = f"rfp_collection_{uuid.uuid4()}"
 
     # Create fresh in-memory vector store
     vector_store = Chroma.from_texts(
-
-        texts=chunks,
-
-        embedding=embeddings,
-
-        collection_name=collection_name
+        texts=chunks, embedding=embeddings, collection_name=collection_name
     )
 
     return vector_store
@@ -49,12 +50,7 @@ def create_vector_store(chunks):
 # -----------------------------------
 # SEARCH VECTOR STORE
 # -----------------------------------
-def search_vector_store(
-
-    query: str,
-
-    k: int = 5
-):
+def search_vector_store(query: str, k: int = 5):
 
     global vector_store
 
@@ -62,11 +58,6 @@ def search_vector_store(
 
         return []
 
-    results = vector_store.similarity_search(
-
-        query,
-
-        k=k
-    )
+    results = vector_store.similarity_search(query, k=k)
 
     return results
