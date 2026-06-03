@@ -25,8 +25,11 @@
                 "input": "public"
               }
             ],
-"styles": ["src/material-theme.scss", "src/tailwind.css", "src/styles.css"],
-
+            "styles": [
+              "src/material-theme.scss",
+              "src/tailwind.css",
+              "src/styles.css"
+            ],
             "server": "src/main.server.ts",
             "outputMode": "server",
             "security": {
@@ -38,6 +41,12 @@
           },
           "configurations": {
             "production": {
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.prod.ts"
+                }
+              ],
               "budgets": [
                 {
                   "type": "initial",
