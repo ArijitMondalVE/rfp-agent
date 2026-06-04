@@ -1,4 +1,11 @@
-import { Component, ChangeDetectorRef, ElementRef, Input, SimpleChanges, ViewChild } from '@angular/core';
+import {
+  Component,
+  ChangeDetectorRef,
+  ElementRef,
+  Input,
+  SimpleChanges,
+  ViewChild,
+} from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 
@@ -7,7 +14,6 @@ import { NgFor, NgIf, NgClass } from '@angular/common';
 import { marked } from 'marked';
 
 import * as DOMPurifyImport from 'dompurify';
-
 
 import { ApiService } from '../../services/api.service';
 
@@ -38,12 +44,8 @@ marked.setOptions({
   styleUrls: ['./chat.component.css'],
 })
 export class ChatComponent {
-
   private scheduleUiUpdate(fn: () => void): void {
-
-
     if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
-
       window.requestAnimationFrame(() => fn());
       return;
     }
@@ -51,7 +53,6 @@ export class ChatComponent {
     // SSR / non-browser fallback
     setTimeout(() => fn(), 0);
   }
-
 
   // -----------------------------------
   // Input: active chat session
@@ -63,6 +64,10 @@ export class ChatComponent {
       this.sessionId = this.sessionId || 'global';
       this.loadHistoryForSession();
     }
+  }
+
+  ngOnInit(): void {
+    this.sessionId = this.getOrCreateSessionId();
   }
 
   private loadHistoryForSession(): void {
@@ -85,7 +90,6 @@ export class ChatComponent {
     });
   }
 
-
   // -----------------------------------
   // User Input
   // -----------------------------------
@@ -106,8 +110,6 @@ export class ChatComponent {
     this.loadHistoryForSession();
   }
 
-
-
   // -----------------------------------
   // Chat Messages
   // -----------------------------------
@@ -125,18 +127,18 @@ export class ChatComponent {
     private cdr: ChangeDetectorRef,
   ) {}
 
-
   private getOrCreateSessionId(): string {
-    try {
-      const existing = localStorage.getItem(this.SESSION_STORAGE_KEY);
-      if (existing && existing.trim().length > 0) return existing;
+    const key = 'rfp_session_id';
 
-      const created = crypto.randomUUID();
-      localStorage.setItem(this.SESSION_STORAGE_KEY, created);
-      return created;
-    } catch {
-      return 'global';
+    let sessionId = localStorage.getItem(key);
+
+    if (!sessionId) {
+      sessionId = crypto.randomUUID();
+
+      localStorage.setItem(key, sessionId);
     }
+
+    return sessionId;
   }
 
   // -----------------------------------

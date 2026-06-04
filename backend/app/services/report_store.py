@@ -1,1 +1,1 @@
-latest_report = {}
+report = {}

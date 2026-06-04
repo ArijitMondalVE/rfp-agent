@@ -108,14 +108,14 @@ IMPORTANT RULES:
 # ===================================
 
 
-def retrieve_context(question: str):
+def retrieve_context(session_id: str, question: str):
 
     summary_query = is_summary_query(question)
 
     # Better retrieval for summaries
     search_query = "full document summary" if summary_query else question
 
-    docs = search_vector_store(search_query, k=5 if summary_query else 3)
+    docs = search_vector_store(session_id, search_query, k=5 if summary_query else 3)
 
     context = "\n\n".join([doc.page_content[:500] for doc in docs])
 
@@ -139,11 +139,17 @@ def retrieve_history(session_id: str):
 # ===================================
 
 
-def retrieve_memory():
+def retrieve_memory(session_id: str
+):
 
-    stored_context = get_context("global")
+    stored_context = get_context(session_id)
 
-    return "\n\n".join([memory.content[:400] for memory in stored_context[:2]])
+    return "\n\n".join(
+    [
+        memory.content[:400]
+        for memory in stored_context[:2]
+    ]
+)
 
 
 # ===================================
@@ -201,7 +207,7 @@ def chat_with_rfp(session_id: str, question: str):
     save_chat_message(session_id, "user", question)
 
     # Retrieve context
-    context, summary_query = retrieve_context(question)
+    context, summary_query = retrieve_context(session_id, question)
 
     # Empty context
     if not context.strip():
@@ -216,7 +222,7 @@ def chat_with_rfp(session_id: str, question: str):
     history_text = retrieve_history(session_id)
 
     # Retrieve memory
-    memory_context = retrieve_memory()
+    memory_context = retrieve_memory(session_id)
 
     # Build prompt
     prompt = build_prompt(
@@ -249,7 +255,7 @@ async def stream_chat_with_rfp(session_id: str, question: str):
     save_chat_message(session_id, "user", question)
 
     # Retrieve context
-    context, summary_query = retrieve_context(question)
+    context, summary_query = retrieve_context(session_id, question)
 
     # Empty context
     if not context.strip():
@@ -269,7 +275,7 @@ async def stream_chat_with_rfp(session_id: str, question: str):
     history_text = retrieve_history(session_id)
 
     # Retrieve memory
-    memory_context = retrieve_memory()
+    memory_context = retrieve_memory(session_id)
 
     # Build prompt
     prompt = build_prompt(
@@ -346,18 +352,30 @@ def generate_document_summary(text: str):
     shortened_text = text[:10000]
 
     prompt = f"""
-Summarize this document professionally.
+Generate a professional document summary.
 
-Include:
-- Main topic
-- Objectives
-- Important points
-- Key requirements
-- Deliverables if available
+Structure:
 
-Use markdown formatting.
-Use bullet points.
-Keep response concise and readable.
+Executive Summary
+
+Main Topic
+
+Objectives
+
+Important Points
+
+Requirements / Deliverables
+
+Important Insights
+
+Rules:
+
+- Do NOT use markdown headings
+- Do NOT use #, ##, ###
+- Use the bullet character •
+- Put each bullet on a separate line
+- Leave one blank line between sections
+- Keep the summary concise
 
 DOCUMENT:
 {shortened_text}

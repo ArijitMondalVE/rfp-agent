@@ -5,7 +5,7 @@ from langchain_huggingface import HuggingFaceEndpointEmbeddings
 
 embeddings = HuggingFaceEndpointEmbeddings(
     model="sentence-transformers/all-MiniLM-L6-v2",
-    huggingfacehub_api_token=os.getenv("HF_TOKEN")
+    huggingfacehub_api_token=os.getenv("HF_TOKEN"),
 )
 
 
@@ -21,38 +21,35 @@ embeddings = HuggingFaceEndpointEmbeddings(
 # -----------------------------------
 # GLOBAL VECTOR STORE
 # -----------------------------------
-vector_store = None
+vector_store = {}
 
 
 # -----------------------------------
 # CREATE VECTOR STORE
 # -----------------------------------
-def create_vector_store(chunks):
+def create_vector_store(session_id: str, chunks):
 
-    global vector_store
+    global vector_stores
 
-    # Create unique collection
-    collection_name = f"rfp_collection_{uuid.uuid4()}"
+    collection_name = f"rfp_collection_{session_id}"
 
-    # Create fresh in-memory vector store
-    vector_store = Chroma.from_texts(
+    vector_stores[session_id] = Chroma.from_texts(
         texts=chunks, embedding=embeddings, collection_name=collection_name
     )
 
-    return vector_store
+    return vector_stores[session_id]
 
 
 # -----------------------------------
 # SEARCH VECTOR STORE
 # -----------------------------------
-def search_vector_store(query: str, k: int = 5):
+def search_vector_store(session_id: str, query: str, k: int = 5):
 
-    global vector_store
+    global vector_stores
 
-    if vector_store is None:
+    store = vector_stores.get(session_id)
 
+    if not store:
         return []
 
-    results = vector_store.similarity_search(query, k=k)
-
-    return results
+    return store.similarity_search(query, k=k)

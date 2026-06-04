@@ -4,74 +4,39 @@ import shutil
 from pathlib import Path
 from datetime import datetime
 
-from fastapi import (
-    APIRouter,
-    UploadFile,
-    File
-)
+from fastapi import APIRouter, UploadFile, File
 
-from fastapi.responses import (
-    FileResponse
-)
+from fastapi.responses import FileResponse
 
+from backend.app.models import report
 from sqlalchemy.orm import Session
 
-from app.db.database import (
-    SessionLocal
-)
+from app.db.database import SessionLocal
 
-from app.models.report import (
-    Report
-)
+from app.models.report import Report
 
-from app.models.chat_message import (
-    ChatMessage
-)
+from app.models.chat_message import ChatMessage
 
-from app.services.pdf_parser import (
-    extract_text_from_pdf
-)
+from app.services.pdf_parser import extract_text_from_pdf
 
-from app.services.ocr_service import (
-    extract_text_with_ocr
-)
+from app.services.ocr_service import extract_text_with_ocr
 
-from app.services.chunker import (
-    chunk_document
-)
+from app.services.chunker import chunk_document
 
-from app.services.async_processor import (
-    process_chunks_async
-)
+from app.services.async_processor import process_chunks_async
 
-from app.services.merger import (
-    merge_results
-)
+from app.services.merger import merge_results
 
-from app.services.aggregator import (
-    aggregate_results
-)
+from app.services.aggregator import aggregate_results
 
-from app.services.confidence import (
-    add_confidence_scores
-)
+from app.services.confidence import add_confidence_scores
 
-from app.services.vector_store import (
-
-    create_vector_store,
-
-    search_vector_store
-
-)
+from app.services.vector_store import create_vector_store, search_vector_store
 
 from app.services.chat_rag import (
-
     chat_with_rfp,
-
     stream_chat_with_rfp,
-
-    generate_document_summary
-
+    generate_document_summary,
 )
 
 from app.services.chat_memory import (
@@ -84,216 +49,125 @@ from app.services.chat_memory import (
 )
 
 
-from app.services.export_service import (
+from app.services.export_service import generate_docx_report, generate_pdf_report
 
-    generate_docx_report,
-
-    generate_pdf_report
-
-)
-
-from app.services.context_memory import (
-    save_context
-)
+from app.services.context_memory import save_context
 
 from app.services import report_store
-
 
 # -----------------------------------
 # Router
 # -----------------------------------
-router = APIRouter(
-
-    prefix="",
-
-    tags=["RFP"]
-
-)
+router = APIRouter(prefix="", tags=["RFP"])
 
 UPLOAD_DIR = "uploads"
 
-Path(
-    UPLOAD_DIR
-).mkdir(exist_ok=True)
+Path(UPLOAD_DIR).mkdir(exist_ok=True)
 
 
 # -----------------------------------
 # Upload + Process RFP
 # -----------------------------------
 @router.post("/upload")
-async def upload_rfp(
-    file: UploadFile = File(...)
-):
+async def upload_rfp(session_id: str, file: UploadFile = File(...)):
 
     # -----------------------------------
     # Save uploaded file
     # -----------------------------------
-    file_path = Path(
-        UPLOAD_DIR
-    ) / file.filename
+    file_path = Path(UPLOAD_DIR) / file.filename
 
-    with open(
-        file_path,
-        "wb"
-    ) as buffer:
+    with open(file_path, "wb") as buffer:
 
-        shutil.copyfileobj(
-            file.file,
-            buffer
-        )
+        shutil.copyfileobj(file.file, buffer)
 
     # -----------------------------------
     # Extract PDF text
     # -----------------------------------
-    text = extract_text_from_pdf(
-        str(file_path)
-    )
+    text = extract_text_from_pdf(str(file_path))
 
     # -----------------------------------
     # OCR fallback
     # -----------------------------------
     if len(text.strip()) < 500:
 
-        print(
-            "Low text detected. Running OCR..."
-        )
+        print("Low text detected. Running OCR...")
 
-        text = extract_text_with_ocr(
-            str(file_path)
-        )
+        text = extract_text_with_ocr(str(file_path))
 
     # -----------------------------------
     # Generate executive summary
     # -----------------------------------
-    document_summary = generate_document_summary(
-        text
-    )
+    document_summary = generate_document_summary(text)
 
     # -----------------------------------
     # Save context memory
     # -----------------------------------
     save_context(
-
-        session_id="global",
-
-        context_type="summary",
-
-        content=document_summary
+        session_id=session_id, context_type="summary", content=document_summary
     )
 
     save_context(
-
-        session_id="global",
-
-        context_type="document_name",
-
-        content=file.filename
+        session_id=session_id, context_type="document_name", content=file.filename
     )
 
     save_context(
-
-        session_id="global",
-
-        context_type="upload_time",
-
-        content=str(datetime.now())
+        session_id=session_id, context_type="upload_time", content=str(datetime.now())
     )
 
     # -----------------------------------
     # Chunk document
     # -----------------------------------
-    chunks = chunk_document(
-        text
-    )
+    chunks = chunk_document(text)
 
     # -----------------------------------
     # Store embeddings
     # -----------------------------------
-    create_vector_store(
-        chunks
-    )
+    create_vector_store(chunks)
 
     # -----------------------------------
     # Run AI extraction
     # -----------------------------------
-    results = await process_chunks_async(
-        chunks[:5]
-    )
+    results = await process_chunks_async(chunks[:5])
 
     # -----------------------------------
     # Merge extracted results
     # -----------------------------------
-    merged = merge_results(
-        results
-    )
+    merged = merge_results(results)
 
     # -----------------------------------
     # Aggregate structured report
     # -----------------------------------
-    aggregated = aggregate_results(
-        merged
-    )
+    aggregated = aggregate_results(merged)
 
     # -----------------------------------
     # Add summary
     # -----------------------------------
-    aggregated["summary"] = [
-
-        {
-            "value": document_summary
-        }
-
-    ]
+    aggregated["summary"] = [{"value": document_summary}]
 
     # -----------------------------------
     # Add confidence scores
     # -----------------------------------
-    aggregated["scope_of_work"] = (
-        add_confidence_scores(
-            aggregated.get(
-                "scope_of_work",
-                []
-            )
-        )
+    aggregated["scope_of_work"] = add_confidence_scores(
+        aggregated.get("scope_of_work", [])
     )
 
-    aggregated["deadlines"] = (
-        add_confidence_scores(
-            aggregated.get(
-                "deadlines",
-                []
-            )
-        )
+    aggregated["deadlines"] = add_confidence_scores(aggregated.get("deadlines", []))
+
+    aggregated["staffing_requirements"] = add_confidence_scores(
+        aggregated.get("staffing_requirements", [])
     )
 
-    aggregated["staffing_requirements"] = (
-        add_confidence_scores(
-            aggregated.get(
-                "staffing_requirements",
-                []
-            )
-        )
-    )
-
-    aggregated["compliance_items"] = (
-        add_confidence_scores(
-            aggregated.get(
-                "compliance_items",
-                []
-            )
-        )
+    aggregated["compliance_items"] = add_confidence_scores(
+        aggregated.get("compliance_items", [])
     )
 
     # -----------------------------------
     # Save structured report memory
     # -----------------------------------
     save_context(
-
-    session_id="global",
-
-    context_type="important_points",
-
-    content=f"""
+        session_id=session_id,
+        context_type="important_points",
+        content=f"""
     Scope:
     {aggregated.get('scope_of_work', [])}
 
@@ -302,30 +176,20 @@ async def upload_rfp(
 
     Compliance:
     {aggregated.get('compliance_items', [])}
-    """
-)
+    """,
+    )
 
     # -----------------------------------
     # Store latest report in memory
     # -----------------------------------
-    report_store.latest_report.clear()
-
-    report_store.latest_report.update(
-        aggregated
-    )
+    report_store.reports[session_id] = aggregated
 
     # -----------------------------------
     # Save report to database
     # -----------------------------------
     db: Session = SessionLocal()
 
-    report = Report(
-
-        report_json=json.dumps(
-            aggregated
-        )
-
-    )
+    report = Report(report_json=json.dumps(aggregated))
 
     db.add(report)
 
@@ -337,25 +201,19 @@ async def upload_rfp(
     # API Response
     # -----------------------------------
     return {
-
         "filename": file.filename,
-
         "characters": len(text),
-
         "preview": text[:1000],
-
         "total_chunks": len(chunks),
-
         "processed_chunks": len(results),
-
-        "report": aggregated
-
+        "report": aggregated,
     }
 
 
 # -----------------------------------
 # Get Latest Report JSON
 # -----------------------------------
+
 
 @router.get("/documents")
 async def get_documents():
@@ -364,58 +222,40 @@ async def get_documents():
 
 
 @router.get("/report")
-async def get_report():
-    """Fetch the latest report JSON for preview."""
-    if not report_store.latest_report:
-        return {"error": "No report available. Upload an RFP first."}, 404
+async def get_report(
+    session_id: str
+):
 
-    return report_store.latest_report
+    report = report_store.reports.get(
+        session_id
+    )
+
+    if not report:
+        return {
+            "error": "No report available. Upload an RFP first."
+        }
+
+    return report
 
 
 # -----------------------------------
 # Semantic Search API
 # -----------------------------------
 @router.get("/search")
-async def search_rfp(
-    query: str
-):
+async def search_rfp( session_id: str,query: str):
 
-    results = search_vector_store(
-        query
-    )
+    results = search_vector_store(query)
 
-    return {
-
-        "query": query,
-
-        "results": [
-
-            doc.page_content
-
-            for doc in results
-        ]
-    }
+    return {"query": query, "results": [doc.page_content for doc in results]}
 
 
 # -----------------------------------
 # Normal Chat API
 # -----------------------------------
 @router.get("/chat")
-async def chat_rfp(
+async def chat_rfp(session_id: str, question: str):
 
-    session_id: str,
-
-    question: str
-
-):
-
-    response = chat_with_rfp(
-
-        session_id,
-
-        question
-
-    )
+    response = chat_with_rfp(session_id, question)
 
     return response
 
@@ -424,36 +264,30 @@ async def chat_rfp(
 # Streaming Chat API
 # -----------------------------------
 @router.get("/stream-chat")
-async def stream_chat(
-    session_id: str,
-    question: str
-):
+async def stream_chat(session_id: str, question: str):
 
-    return await stream_chat_with_rfp(
-        session_id,
-        question
-    )
+    return await stream_chat_with_rfp(session_id, question)
 
 
 # -----------------------------------
 # Export DOCX
 # -----------------------------------
 @router.get("/export-docx")
-async def export_docx():
+async def export_docx(
+    session_id: str
+):
 
-    file_path = generate_docx_report(
-        report_store.latest_report
+    report = report_store.reports.get(
+        session_id
     )
 
-    return FileResponse(
+    if not report:
+        return {
+            "error": "No report found"
+        }
 
-        path=file_path,
-
-        filename="rfp_report.docx",
-
-        media_type=(
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        )
+    file_path = generate_docx_report(
+        report
     )
 
 
@@ -461,19 +295,21 @@ async def export_docx():
 # Export PDF
 # -----------------------------------
 @router.get("/export-pdf")
-async def export_pdf():
+async def export_pdf(
+    session_id: str
+):
 
-    file_path = generate_pdf_report(
-        report_store.latest_report
+    report = report_store.reports.get(
+        session_id
     )
 
-    return FileResponse(
+    if not report:
+        return {
+            "error": "No report found"
+        }
 
-        path=file_path,
-
-        filename="rfp_report.pdf",
-
-        media_type="application/pdf"
+    file_path = generate_pdf_report(
+        report
     )
 
 
@@ -481,13 +317,9 @@ async def export_pdf():
 # Clear Chat History
 # -----------------------------------
 @router.get("/chat-history")
-async def chat_history(
-    session_id: str
-):
+async def chat_history(session_id: str):
     # Return messages in the format expected by the frontend.
-    return {
-        "messages": get_chat_history(session_id)
-    }
+    return {"messages": get_chat_history(session_id)}
 
 
 # -----------------------------------
@@ -539,27 +371,16 @@ async def update_session(session_id: str, body: dict):
 # Clear Chat History
 # -----------------------------------
 @router.delete("/clear-chat")
-async def clear_chat(
-    session_id: str
-):
+async def clear_chat(session_id: str):
     db: Session = SessionLocal()
 
-    db.query(
-        ChatMessage
-    ).filter(
-
-        ChatMessage.session_id
-        == session_id
-
-    ).delete()
+    db.query(ChatMessage).filter(ChatMessage.session_id == session_id).delete()
 
     db.commit()
 
     db.close()
 
-    return {
-        "message": "Chat cleared"
-    }
+    return {"message": "Chat cleared"}
 
 
 # -----------------------------------
