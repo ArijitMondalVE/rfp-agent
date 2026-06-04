@@ -9,3 +9,45 @@
   font-size: 0.9rem;
   line-height: 1.8;
 }
+
+/* Enforce consistent spacing inside report content.
+   Prevents “glued” sections when markdown/JSON produces <p>/<ul>/<li> nodes. */
+.report-body p {
+  margin: 0 0 0.75rem 0;
+}
+
+.report-body p:last-child {
+  margin-bottom: 0;
+}
+
+.report-body ul,
+.report-body ol {
+  margin: 0 0 0.75rem 1.25rem;
+  padding: 0;
+}
+
+.report-body li {
+  margin: 0;
+}
+
+.preview-toggle { 
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.preview-toggle:hover .preview-label {
+  opacity: 0.7;
+}
+
+.toggle-icon {
+  color: rgba(203, 213, 225, 0.5);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.toggle-icon.collapsed {
+  transform: rotate(-90deg);
+}

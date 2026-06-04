@@ -104,7 +104,7 @@ from app.services import report_store
 # -----------------------------------
 router = APIRouter(
 
-    prefix="/rfp",
+    prefix="",
 
     tags=["RFP"]
 
@@ -356,6 +356,13 @@ async def upload_rfp(
 # -----------------------------------
 # Get Latest Report JSON
 # -----------------------------------
+
+@router.get("/documents")
+async def get_documents():
+    # return recent documents list
+    return {"documents": []}
+
+
 @router.get("/report")
 async def get_report():
     """Fetch the latest report JSON for preview."""

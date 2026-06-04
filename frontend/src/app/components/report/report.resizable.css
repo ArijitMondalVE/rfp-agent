@@ -1,0 +1,42 @@
+.report-resizable-root {
+    position: relative;
+}
+
+/* Smooth drag-to-resize for the preview body */
+.preview-drag-handle {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 10px;
+    cursor: row-resize;
+    z-index: 20;
+    touch-action: none;
+}
+
+.preview-drag-handle::after {
+    content: "";
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 2px;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.35);
+    opacity: 0;
+    transition: opacity .15s ease;
+}
+
+.preview-drag-handle:hover::after {
+    opacity: 1;
+}
+
+.preview-resizable-body {
+    overflow: auto;
+}
+
+/* While dragging: reduce selection */
+.body-resizing {
+    cursor: row-resize;
+}

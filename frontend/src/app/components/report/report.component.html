@@ -34,29 +34,63 @@
     {{ exportError }}
   </div>
 
-  <div class="rounded-xl border border-white/10 bg-slate-900/30 p-4">
+  <div
+    *ngIf="copyStatus === 'failed'"
+    class="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-200"
+  >
+    Copy failed. Please try again.
+  </div>
+
+
+  <div class="rounded-xl border border-white/10 bg-slate-900/30 p-4 preview-resizable-root">
     <!-- Preview Header (always visible) -->
-    <div class="preview-toggle" (click)="togglePreview()">
-      <h3 class="text-sm font-semibold text-slate-200 preview-label">Preview</h3>
-      <svg
-        class="toggle-icon"
-        [class.collapsed]="previewCollapsed"
-        xmlns="http://www.w3.org/2000/svg"
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
+    <div class="flex items-center justify-between gap-4">
+      <div class="preview-toggle" (click)="togglePreview()">
+        <h3 class="text-sm font-semibold text-slate-200 preview-label">Preview</h3>
+        <svg
+          class="toggle-icon"
+          [class.collapsed]="previewCollapsed"
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </div>
+
+      <button
+        class="upload-action inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-medium shadow-soft transition active:scale-[0.99] disabled:opacity-60"
+        [ngClass]="{
+          'bg-emerald-500/20 text-emerald-100 border border-emerald-500/30': copyStatus === 'copied',
+          'hover:brightness-105': copyStatus !== 'copied'
+        }"
+        [disabled]="!latestReport || copyStatus === 'copied'"
+        (click)="copyReportText()"
+        aria-label="Copy generated report"
       >
-        <polyline points="6 9 12 15 18 9"></polyline>
-      </svg>
+        <span *ngIf="copyStatus !== 'copied'">Copy</span>
+        <span *ngIf="copyStatus === 'copied'">Copied</span>
+      </button>
     </div>
 
+
     <!-- Preview Body (Angular structural directive — removes from DOM when collapsed) -->
-    <ng-container *ngIf="!previewCollapsed">
+    <div class="preview-resizable-body" [class.body-resizing]="false" style="max-height: 70vh;">
+      <div
+        class="preview-drag-handle"
+        (mousedown)="onResizeStart($event)"
+        (touchstart)="onResizeStart($event)"
+        aria-label="Resize preview"
+        role="separator"
+      ></div>
+
+      <ng-container *ngIf="!previewCollapsed">
       <ng-container *ngIf="latestReport; else emptyStateTpl">
         <div class="mt-3 space-y-6">
 

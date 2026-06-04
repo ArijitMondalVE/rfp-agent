@@ -84,9 +84,217 @@ def clean_text(text: str) -> str:
     """Remove markdown and formatting artifacts."""
     text = text.replace("```json", "").replace("```", "")
     text = text.replace("**", "").replace("*", "")
-    text = text.replace("#", "")
+
     text = text.replace("`", "")
     return text.strip()
+
+
+def parse_markdown_to_paragraphs(text: str, styles) -> list:
+    """Parse markdown text into a list of (style_name, content) tuples for PDF."""
+    elements = []
+    lines = text.split("\n")
+    in_list = False
+
+    body_style = styles.get("CustomBody", styles["BodyText"])
+    heading_style = styles.get("CustomHeading", styles["Heading2"])
+    bullet_style = styles.get("CustomBullet", styles["BodyText"])
+
+    # Custom styles for parsed markdown
+    h1_style = ParagraphStyle(
+        "MarkdownH1",
+        parent=heading_style,
+        fontSize=16,
+        textColor=colors.HexColor("#1a1a2e"),
+        spaceBefore=12,
+        spaceAfter=6,
+    )
+
+    h2_style = ParagraphStyle(
+        "MarkdownH2",
+        parent=heading_style,
+        fontSize=14,
+        textColor=colors.HexColor("#1a1a2e"),
+        spaceBefore=10,
+        spaceAfter=6,
+    )
+
+    h3_style = ParagraphStyle(
+        "MarkdownH3",
+        parent=heading_style,
+        fontSize=12,
+        textColor=colors.HexColor("#333333"),
+        spaceBefore=8,
+        spaceAfter=4,
+    )
+
+    plain_style = ParagraphStyle(
+        "MarkdownPlain",
+        parent=body_style,
+        fontSize=10,
+        leading=14,
+        alignment=TA_JUSTIFY,
+    )
+
+    list_bullet_style = ParagraphStyle(
+        "MarkdownListBullet",
+        parent=bullet_style,
+        fontSize=10,
+        leading=14,
+        leftIndent=20,
+        spaceAfter=3,
+        bulletIndent=10,
+    )
+
+    def split_heading_content(line):
+        """Split heading from content if on same line like '### Heading Content'."""
+        # Find where the heading ends and content begins
+        # Pattern: after heading marker, find first period+space that's NOT at end
+        # followed by capital letter or common content words
+        for i, c in enumerate(line):
+            if c == '.' and i > 30 and i < len(line) - 20:
+                # Possible split point - check what follows
+                rest = line[i+1:].strip()
+                if rest and rest[0].isupper():
+                    return line[:i], line[i+1:].strip()
+        return None, line  # No split found
+
+    for line in lines:
+        stripped = line.strip()
+
+        # Skip empty lines
+        if not stripped:
+            in_list = False
+            continue
+
+        # H1 heading (# Header)
+        if stripped.startswith("# "):
+            heading, rest = split_heading_content(stripped[2:])
+            if heading:
+                elements.append((None, "skip"))
+                elements.append(("h1", heading))
+                if rest:
+                    elements.append(("body", rest))
+            else:
+                elements.append((None, "skip"))
+                elements.append(("h1", stripped[2:].strip()))
+        # H2 heading (## Header)
+        elif stripped.startswith("## "):
+            heading, rest = split_heading_content(stripped[3:])
+            if heading:
+                elements.append((None, "skip"))
+                elements.append(("h2", heading))
+                if rest:
+                    elements.append(("body", rest))
+            else:
+                elements.append((None, "skip"))
+                elements.append(("h2", stripped[3:].strip()))
+        # H3 heading (### Header)
+        elif stripped.startswith("### "):
+            heading, rest = split_heading_content(stripped[4:])
+            if heading:
+                elements.append((None, "skip"))
+                elements.append(("h3", heading))
+                if rest:
+                    elements.append(("body", rest))
+            else:
+                elements.append((None, "skip"))
+                elements.append(("h3", stripped[4:].strip()))
+        # Bullet list item (* or • or -)
+        elif stripped.startswith(("* ", "• ", "- ")):
+            content = stripped[2:].strip()
+            if content:
+                elements.append(("list_bullet", content))
+                in_list = True
+        # Numbered list (1. 2. etc)
+        elif stripped and stripped[0].isdigit() and ". " in stripped[:4]:
+            content = stripped[stripped.index(". ") + 2:].strip()
+            if content:
+                elements.append(("list_bullet", content))
+                in_list = True
+        # Bold text line (standalone **text**)
+        elif stripped.startswith("**") and stripped.endswith("**"):
+            elements.append(("bold", stripped[2:-2].strip()))
+        # Regular paragraph
+        else:
+            # Clean markdown artifacts but preserve text
+            clean = stripped
+            # Remove inline markdown
+            clean = clean.replace("**", "").replace("*", "")
+            clean = clean.replace("`", "").replace("```", "")
+            if clean:
+                elements.append(("body", clean))
+
+    return elements
+
+
+def render_markdown_to_elements(text: str, styles, body_font="Times") -> list:
+    """Convert markdown text to PDF elements with proper styling."""
+    elements = []
+    parsed = parse_markdown_to_paragraphs(text, styles)
+
+    # Define styles
+    h2_style = ParagraphStyle(
+        "ParsedH2",
+        fontName="Helvetica-Bold",
+        fontSize=14,
+        spaceBefore=14,
+        spaceAfter=8,
+        textColor=colors.HexColor("#1a1a2e"),
+        leading=18,
+    )
+
+    h3_style = ParagraphStyle(
+        "ParsedH3",
+        fontName="Helvetica-Bold",
+        fontSize=12,
+        spaceBefore=10,
+        spaceAfter=6,
+        textColor=colors.HexColor("#333333"),
+        leading=16,
+    )
+
+    body_style = ParagraphStyle(
+        "ParsedBody",
+        fontName=body_font,
+        fontSize=10,
+        leading=14,
+        alignment=TA_JUSTIFY,
+        spaceAfter=6,
+    )
+
+    bullet_style = ParagraphStyle(
+        "ParsedBullet",
+        fontName=body_font,
+        fontSize=10,
+        leading=14,
+        leftIndent=25,
+        spaceAfter=4,
+        bulletIndent=10,
+    )
+
+    bold_style = ParagraphStyle(
+        "ParsedBold",
+        fontName="Helvetica-Bold",
+        fontSize=10,
+        leading=14,
+        spaceAfter=4,
+    )
+
+    for style_name, content in parsed:
+        if style_name == "skip":
+            elements.append(Spacer(1, 6))
+        elif style_name == "h2":
+            elements.append(Paragraph(content, h2_style))
+        elif style_name == "h3":
+            elements.append(Paragraph(content, h3_style))
+        elif style_name == "body":
+            elements.append(Paragraph(content, body_style))
+        elif style_name == "list_bullet":
+            elements.append(Paragraph(f"\u2022 {content}", bullet_style))
+        elif style_name == "bold":
+            elements.append(Paragraph(content, bold_style))
+
+    return elements
 
 
 def set_run_font(run, name, size, bold=False, italic=False):
@@ -398,10 +606,29 @@ def generate_pdf_report(report_data):
                 Paragraph("No information extracted.", empty_style)
             )
         else:
-            for item in formatted_items:
-                elements.append(
-                    Paragraph(f"  {item}", bullet_style)
-                )
+            # Check if this is markdown content (Executive Summary)
+            if key == "summary" and len(formatted_items) == 1:
+                # Try to render as markdown
+                md_text = formatted_items[0]
+                if "## " in md_text or "### " in md_text or "* " in md_text or "• " in md_text:
+                    # Contains markdown - render properly
+                    md_elements = render_markdown_to_elements(
+                        md_text, styles, body_font=body_font
+                    )
+                    elements.extend(md_elements)
+                else:
+                    # Plain text - justify it
+                    para_style = ParagraphStyle(
+                        "SummaryBody",
+                        parent=body_style,
+                        alignment=TA_JUSTIFY,
+                    )
+                    elements.append(Paragraph(md_text, para_style))
+            else:
+                for item in formatted_items:
+                    elements.append(
+                        Paragraph(f"\u2022 {item}", bullet_style)
+                    )
 
         first = False
 

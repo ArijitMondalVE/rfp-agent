@@ -330,3 +330,13 @@
     font-size: 0.92rem;
   }
 }
+.main-content {
+  display: flex;
+  height: 100%;
+}
+
+app-chat,
+app-report-preview {
+  flex: 1;
+  min-width: 0;
+}

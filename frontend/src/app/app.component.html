@@ -1,85 +1,144 @@
-<div class="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+<div class="h-screen bg-slate-950 text-slate-100 flex flex-col overflow-hidden">
   <!-- Header -->
   <header
     class="border-b border-white/10 bg-gradient-to-b from-sky-500/20 via-indigo-500/10 to-transparent"
   >
-    <div class="px-6 py-5">
-      <h1 class="text-2xl font-semibold tracking-tight">RFP Intelligence Agent</h1>
-
-      <p class="mt-1 text-sm text-slate-300">
-        Upload RFP documents and chat with them using AI-powered RAG.
-      </p>
+    <div class="flex items-center gap-4 px-6 py-6">
+      <button
+        (click)="toggleSidebar()"
+        class="rounded-lg p-2 bg-slate-800 border border-white/10 hover:bg-slate-700 transition-colors"
+        [attr.aria-label]="sidebarOpen ? 'Close sidebar' : 'Open sidebar'"
+      >
+        <svg
+          *ngIf="!sidebarOpen"
+          class="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M4 6h16M4 12h16M4 18h16"
+          />
+        </svg>
+        <svg
+          *ngIf="sidebarOpen"
+          class="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M6 18L18 6M6 6l12 12"
+          />
+        </svg>
+      </button>
+      <div>
+        <h1 class="text-2xl font-semibold tracking-tight">RFP Intelligence Agent</h1>
+        <p class="mt-1 text-sm text-slate-300">
+          Upload RFP documents and chat with them using AI-powered RAG.
+        </p>
+      </div>
     </div>
   </header>
 
   <!-- Main Layout -->
-  <main class="flex flex-1 overflow-hidden min-h-0 items-stretch">
+  <main class="flex flex-1 min-h-0 items-stretch relative">
+    <!-- Mobile Backdrop -->
+    <div
+      *ngIf="sidebarOpen"
+      class="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 md:hidden"
+      (click)="toggleSidebar()"
+    ></div>
+
     <!-- LEFT SIDEBAR -->
     <aside
-      class="sidebar border-r border-white/10 bg-slate-900/40 flex flex-col"
-      [style.width.px]="sidebarWidth"
+      class="sidebar border-r border-white/10 bg-slate-900/40 flex flex-col transition-all duration-300 ease-in-out"
+      [class.w-0]="!sidebarOpen"
+      [class.min-w-0]="!sidebarOpen"
+      [class.overflow-hidden]="!sidebarOpen"
+      [class.sidebar-open]="sidebarOpen"
     >
-      <!-- Upload Section -->
-      <div class="sidebar-upload-section">
-        <app-upload (uploadComplete)="onDocumentUploaded($event)"></app-upload>
-      </div>
-
-      <!-- Recent Documents -->
-      <div class="sidebar-docs-section">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-sm font-semibold text-slate-200">Recent Documents</h2>
-
-          <span class="text-xs px-2 py-1 rounded-full bg-sky-500/20 text-sky-300"> PDFs </span>
+      <div [class.hidden]="!sidebarOpen" [class.contents]="!sidebarOpen">
+        <!-- Upload Section -->
+        <div class="sidebar-upload-section">
+          <app-upload (uploadComplete)="onDocumentUploaded($event)"></app-upload>
         </div>
 
-        <div class="space-y-2">
-          <div
-            *ngIf="recentDocuments.length === 0"
-            class="rounded-xl border border-white/10 bg-slate-800/30 p-3"
-          >
-            <div class="font-medium text-sm text-slate-100">No recent uploads</div>
+        <!-- Recent Documents -->
+        <div class="sidebar-docs-section">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-sm font-semibold text-slate-200">Recent Documents</h2>
 
-            <div class="mt-1 text-xs text-slate-400">Upload a PDF to see it here.</div>
+            <span class="text-xs px-2 py-1 rounded-full bg-sky-500/20 text-sky-300"> PDFs </span>
           </div>
 
-          <div
-            *ngFor="let doc of recentDocuments"
-            class="rounded-xl border border-white/10 bg-slate-800/50 p-3 hover:bg-slate-800 transition cursor-pointer"
-          >
-            <div class="font-medium text-xs text-slate-100 truncate">
-              {{ doc.filename }}
+          <div class="space-y-2">
+            <div
+              *ngIf="recentDocuments.length === 0"
+              class="rounded-xl border border-white/10 bg-slate-800/30 p-3"
+            >
+              <div class="font-medium text-sm text-slate-100">No recent uploads</div>
+
+              <div class="mt-1 text-xs text-slate-400">Upload a PDF to see it here.</div>
             </div>
 
-            <div class="mt-1 text-xs text-slate-400">
-              {{ formatUploadedAt(doc.uploadedAt) }}
+            <div
+              *ngFor="let doc of recentDocuments"
+              class="rounded-xl border border-white/10 bg-slate-800/50 p-3 hover:bg-slate-800 transition cursor-pointer"
+            >
+              <div class="font-medium text-xs text-slate-100 truncate">
+                {{ doc.filename }}
+              </div>
+
+              <div class="mt-1 text-xs text-slate-400">
+                {{ formatUploadedAt(doc.uploadedAt) }}
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Chat History -->
-      <div class="sidebar-chat-section flex-1 min-h-0">
-        <app-chat-window
-          (activeChatChanged)="activeSessionId = $event"
-          (allChatsCleared)="onAllChatsCleared()"
-        ></app-chat-window>
+        <!-- Chat History -->
+        <div class="sidebar-chat-section flex-1 min-h-0">
+          <app-chat-window
+            (activeChatChanged)="activeSessionId = $event"
+            (allChatsCleared)="onAllChatsCleared()"
+          ></app-chat-window>
+        </div>
       </div>
     </aside>
 
-    <!-- RESIZER -->
-    <div class="resizer" (mousedown)="startResize($event)" [class.resizing]="isResizing"></div>
-
     <!-- RIGHT PANEL -->
-    <section class="main-content flex flex-col min-h-0 bg-slate-950">
+    <section class="main-content flex flex-col bg-slate-950 flex-1 min-h-0">
       <!-- REPORT -->
-      <div class="report-panel h-64 shrink-0 overflow-auto border-b border-white/10">
-        <app-report #reportComp></app-report>
+      <div
+        #reportPanel
+        class="report-panel shrink-0 border-b border-white/10 p-6 overflow-auto"
+        [style.height.px]="reportHeight"
+      >
+        <div class="max-w-5xl w-full mx-auto">
+          <app-report #reportComp></app-report>
+        </div>
       </div>
 
+      <!-- REPORT ↕ CHAT RESIZER -->
+      <div
+        class="horizontal-resizer"
+        (mousedown)="startVerticalResize($event)"
+        [class.resizing]="isVerticalResizing"
+      ></div>
+
       <!-- CHAT -->
-      <div class="chat-section flex-1 min-h-0 p-4">
-        <div class="chat-section-inner flex h-full w-full min-h-0">
-          <app-chat #chatComp class="flex-1 h-full w-full" [sessionId]="activeSessionId"></app-chat>
+      <div class="chat-wrapper flex-1 min-h-0 overflow-hidden flex flex-col">
+        <div class="chat-section-inner-wrapper flex-1 min-h-0 p-6 overflow-y-auto">
+          <div class="max-w-5xl w-full mx-auto h-full flex flex-col">
+            <app-chat #chatComp class="flex-1 w-full" [sessionId]="activeSessionId"></app-chat>
+          </div>
         </div>
       </div>
     </section>

@@ -40,7 +40,10 @@ marked.setOptions({
 export class ChatComponent {
 
   private scheduleUiUpdate(fn: () => void): void {
+
+
     if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+
       window.requestAnimationFrame(() => fn());
       return;
     }

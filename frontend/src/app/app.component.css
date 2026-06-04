@@ -1,61 +1,41 @@
 /* =========================
-   CHAT LAYOUT
+   ROOT LAYOUT
 ========================= */
 
-.chat-section {
+:host {
   display: flex;
-  flex: 1;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
   min-height: 0;
-}
-
-.chat-section-inner {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-  border-radius: 18px;
-}
-
-app-chat {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
 }
 
 /* =========================
    SIDEBAR
 ========================= */
 
-.sidebar-panel {
-  width: var(--sidebar-width, 320px);
-  min-width: 200px;
-  max-width: 500px;
-  flex-shrink: 0;
-}
-
 .sidebar {
+  width: 320px;
   flex-shrink: 0;
+  overflow: hidden;
 }
 
-/* =========================
-   RESIZER
-========================= */
-
-.resizer {
-  width: 6px;
-  cursor: col-resize;
-  flex-shrink: 0;
-  user-select: none;
-  -webkit-user-select: none;
-  background: rgba(255, 255, 255, 0.05);
+.sidebar-upload-section {
+  padding: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.resizer:hover {
-  background: rgba(255, 255, 255, 0.12);
+.sidebar-docs-section {
+  padding: 1rem;
+  overflow-y: auto;
 }
 
-.resizer.resizing {
-  background: rgba(14, 165, 233, 0.4);
+.sidebar-chat-section {
+  flex: 1;
+  min-height: 0;
+  padding: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
 }
 
 /* =========================
@@ -65,6 +45,182 @@ app-chat {
 .main-content {
   flex: 1;
   min-width: 0;
+  min-height: 0;
+
   display: flex;
   flex-direction: column;
+
+  overflow: hidden;
+}
+
+/* =========================
+   REPORT PANEL
+========================= */
+
+.report-panel {
+  flex-shrink: 0;
+
+  min-height: 150px;
+  max-height: 700px;
+
+  overflow: auto;
+
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.report-panel>div {
+  height: 100%;
+}
+
+app-report {
+  display: block;
+  height: 100%;
+}
+
+/* =========================
+   REPORT ↕ CHAT RESIZER
+========================= */
+
+.horizontal-resizer {
+  height: 6px;
+
+  flex-shrink: 0;
+
+  cursor: row-resize;
+
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.horizontal-resizer:hover {
+  background: rgba(14, 165, 233, 0.25);
+}
+
+.horizontal-resizer.resizing {
+  background: rgba(14, 165, 233, 0.5);
+}
+
+/* =========================
+   MOBILE
+========================= */
+
+@media (max-width: 768px) {
+
+  .horizontal-resizer {
+    display: none;
+  }
+
+  .report-panel {
+    height: 220px !important;
+    min-height: 220px !important;
+    max-height: 220px !important;
+  }
+
+  .chat-wrapper {
+    flex: 1;
+  }
+}
+
+
+/* =========================
+   CHAT WRAPPER
+========================= */
+
+.chat-wrapper {
+  flex: 1;
+
+  min-height: 0;
+
+  display: flex;
+
+  flex-direction: column;
+
+  overflow: hidden;
+}
+
+.chat-section-inner-wrapper {
+  flex: 1;
+
+  min-height: 0;
+
+  overflow-y: auto;
+
+  display: flex;
+
+  flex-direction: column;
+}
+
+.chat-section-inner-wrapper>div {
+  flex: 1;
+
+  min-height: 0;
+
+  display: flex;
+
+  flex-direction: column;
+
+  width: 100%;
+
+  max-width: 1024px;
+
+  margin: 0 auto;
+}
+
+/* =========================
+   CHAT COMPONENT
+========================= */
+
+app-chat {
+  display: flex;
+
+  flex-direction: column;
+
+  flex: 1;
+
+  width: 100%;
+
+  min-width: 0;
+
+  min-height: 0;
+
+  overflow: hidden;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+
+    left: 0;
+    top: 0;
+    bottom: 0;
+
+    width: 280px;
+
+    z-index: 40;
+
+    background: rgb(15 23 42);
+
+    transform: translateX(-100%);
+  }
+
+  .sidebar.sidebar-open {
+    transform: translateX(0);
+  }
+
+  .report-panel {
+    min-height: 140px;
+  }
+}
+
+@media (max-width: 640px) {
+  .report-panel {
+    padding: 1rem !important;
+  }
+
+  .chat-section-inner-wrapper {
+    padding: 1rem !important;
+  }
 }

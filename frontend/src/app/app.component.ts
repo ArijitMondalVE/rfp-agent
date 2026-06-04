@@ -6,7 +6,7 @@ import {
   ChangeDetectionStrategy,
   Inject,
   PLATFORM_ID,
-  
+  ElementRef,
 } from '@angular/core';
 import { UploadComponent } from './components/upload/upload.component';
 import { ChatComponent } from './components/chat/chat.component';
@@ -14,7 +14,7 @@ import { ChatWindow } from './components/chat-window/chat-window';
 import { ReportComponent } from './components/report/report.component';
 import { CommonModule } from '@angular/common';
 import { ApiService } from './services/api.service';
-import { isPlatformBrowser } from '@angular/common';
+import { OnDestroy } from '@angular/core';
 
 type RecentDoc = {
   filename: string;
@@ -30,9 +30,77 @@ type RecentDoc = {
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class AppComponent {
+export class AppComponent implements OnDestroy {
   @ViewChild('reportComp') reportComp!: ReportComponent;
   @ViewChild('chatComp') chatComp!: ChatComponent;
+  @ViewChild('reportPanel')
+  reportPanel!: ElementRef<HTMLDivElement>;
+
+  reportHeight = 300;
+
+  isVerticalResizing = false;
+
+  private verticalResizeStartY = 0;
+
+  private verticalResizeStartHeight = 0;
+
+  private verticalDragHeight = 300;
+
+  private readonly MIN_REPORT_HEIGHT = 150;
+
+  private readonly MAX_REPORT_HEIGHT = 700;
+
+  // new lie
+  startVerticalResize(event: MouseEvent): void {
+    if (window.innerWidth <= 768) {
+      return;
+    }
+    
+    event.preventDefault();
+
+    this.isVerticalResizing = true;
+
+    this.verticalResizeStartY = event.clientY;
+
+    this.verticalResizeStartHeight = this.reportHeight;
+
+    this.verticalDragHeight = this.reportHeight;
+
+    document.body.style.cursor = 'row-resize';
+    document.body.style.userSelect = 'none';
+  }
+
+  private onVerticalResize = (event: MouseEvent): void => {
+    if (!this.isVerticalResizing) return;
+
+    const delta = event.clientY - this.verticalResizeStartY;
+
+    const newHeight = Math.min(
+      this.MAX_REPORT_HEIGHT,
+      Math.max(this.MIN_REPORT_HEIGHT, this.verticalResizeStartHeight + delta),
+    );
+
+    this.verticalDragHeight = newHeight;
+
+    requestAnimationFrame(() => {
+      if (this.reportPanel) {
+        this.reportPanel.nativeElement.style.height = `${newHeight}px`;
+      }
+    });
+  };
+
+  stopVerticalResize = (): void => {
+    if (!this.isVerticalResizing) return;
+
+    this.isVerticalResizing = false;
+
+    this.reportHeight = this.verticalDragHeight;
+
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+
+    this.cdr.markForCheck();
+  };
 
   recentDocuments: RecentDoc[] = [];
 
@@ -42,12 +110,8 @@ export class AppComponent {
   // Trigger to reset main chat UI when all chats are cleared
   chatResetTrigger = 0;
 
-  // Sidebar resize
-  sidebarWidth = 320;
-  isResizing = false;
-  private readonly MIN_SIDEBAR_WIDTH = 200;
-  private readonly MAX_SIDEBAR_WIDTH = 500;
-  private readonly STORAGE_KEY_SIDEBAR = 'rfp_sidebar_width_v1';
+  // Sidebar toggle
+  sidebarOpen = true;
 
   private readonly STORAGE_KEY = 'rfp_recent_documents_v1';
 
@@ -57,9 +121,17 @@ export class AppComponent {
     @Inject(PLATFORM_ID) private platformId: Object,
   ) {
     this.loadRecentDocuments();
-    this.loadSidebarWidth();
-    if (isPlatformBrowser(this.platformId)) {
-      this.setupResizeListeners();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('mousemove', this.onVerticalResize);
+
+      window.addEventListener('mouseup', this.stopVerticalResize);
+    }
+  }
+  ngOnDestroy(): void {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('mousemove', this.onVerticalResize);
+
+      window.removeEventListener('mouseup', this.stopVerticalResize);
     }
   }
 
@@ -109,100 +181,6 @@ export class AppComponent {
     }
   }
 
-  private loadSidebarWidth() {
-    try {
-      const saved = localStorage.getItem(this.STORAGE_KEY_SIDEBAR);
-      if (saved) {
-        const width = parseInt(saved, 10);
-        if (width >= this.MIN_SIDEBAR_WIDTH && width <= this.MAX_SIDEBAR_WIDTH) {
-          this.sidebarWidth = width;
-        }
-      }
-    } catch {
-      // ignore
-    }
-  }
-
-  private saveSidebarWidth() {
-    try {
-      localStorage.setItem(this.STORAGE_KEY_SIDEBAR, String(this.sidebarWidth));
-    } catch {
-      // ignore
-    }
-  }
-
-  private animationFrameId: number | null = null;
-
-  private resizeStartX = 0;
-  private resizeStartWidth = 0;
-  private dragWidth = 0;
-
-  startResize(event: MouseEvent): void {
-    event.preventDefault();
-
-    this.isResizing = true;
-
-    this.resizeStartX = event.clientX;
-    this.resizeStartWidth = this.sidebarWidth;
-    this.dragWidth = this.sidebarWidth;
-
-    if (isPlatformBrowser(this.platformId)) {
-      document.body.classList.add('resizing');
-    }
-  }
-
-  private setupResizeListeners(): void {
-    if (!isPlatformBrowser(this.platformId)) {
-      return;
-    }
-
-    window.addEventListener('mousemove', this.onResize);
-
-    window.addEventListener('mouseup', this.stopResize);
-  }
-
-  private onResize = (event: MouseEvent): void => {
-    if (!this.isResizing) return;
-
-    const delta = event.clientX - this.resizeStartX;
-
-    const width = Math.min(
-      this.MAX_SIDEBAR_WIDTH,
-      Math.max(this.MIN_SIDEBAR_WIDTH, this.resizeStartWidth + delta),
-    );
-
-    this.dragWidth = width;
-
-    if (this.animationFrameId !== null) return;
-
-    this.animationFrameId = requestAnimationFrame(() => {
-      this.sidebarWidth = this.dragWidth;
-
-      this.animationFrameId = null;
-    });
-  };
-
-  stopResize = (): void => {
-    if (!this.isResizing) return;
-
-    this.isResizing = false;
-
-   if (isPlatformBrowser(this.platformId)) {
-  document.body.classList.remove('resizing');
-}
-
-    this.sidebarWidth = this.dragWidth;
-
-    this.saveSidebarWidth();
-
-    this.cdr.markForCheck();
-
-    if (this.animationFrameId) {
-      cancelAnimationFrame(this.animationFrameId);
-      this.animationFrameId = null;
-    }
-  };
-
   onDocumentUploaded(result: any) {
     const filename = result?.filename;
     if (!filename || typeof filename !== 'string') return;
@@ -242,5 +220,9 @@ export class AppComponent {
     if (this.chatComp) {
       this.chatComp.resetToEmptyState();
     }
+  }
+
+  toggleSidebar() {
+    this.sidebarOpen = !this.sidebarOpen;
   }
 }
