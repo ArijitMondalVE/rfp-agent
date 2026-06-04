@@ -47,8 +47,9 @@ def is_summary_query(question: str):
 def get_format_instruction(summary_query: bool):
 
     if not summary_query:
+        return ""
 
-        return """
+    return """
 
 Generate a professional structured summary of the document.
 
