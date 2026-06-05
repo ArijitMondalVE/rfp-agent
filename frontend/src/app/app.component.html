@@ -106,7 +106,7 @@
         <!-- Chat History -->
         <div class="sidebar-chat-section flex-1 min-h-0">
           <app-chat-window
-            (activeChatChanged)="activeSessionId = $event"
+            (activeChatChanged)="onActiveChatChanged($event)"
             (allChatsCleared)="onAllChatsCleared()"
           ></app-chat-window>
         </div>

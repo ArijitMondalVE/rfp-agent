@@ -73,6 +73,15 @@ export class AppComponent implements OnDestroy ,OnInit {
   }
 
   //Session
+
+  onActiveChatChanged(sessionId: string) {
+  console.log('CHAT WINDOW EMITTED:', sessionId);
+
+  if (sessionId?.trim()) {
+    this.activeSessionId = sessionId;
+  }
+}
+
   private getOrCreateSessionId(): string {
     const key = 'rfp_session_id';
 

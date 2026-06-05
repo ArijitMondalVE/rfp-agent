@@ -76,9 +76,12 @@ async def upload_rfp(session_id: str, file: UploadFile = File(...)):
 
     # Chunk document
     chunks = chunk_document(text)
+    print("SESSION:", session_id)
+    print("CHUNKS CREATED:", len(chunks))
 
     # Store embeddings
     create_vector_store(session_id=session_id, chunks=chunks)
+    print("VECTOR STORE CREATED")
 
     # Run AI extraction (limited)
     results = await process_chunks_async(chunks[:5])

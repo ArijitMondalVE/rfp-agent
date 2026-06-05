@@ -67,9 +67,13 @@ def search_vector_store(session_id: str, query: str, k: int = 5):
     Search the vector store for relevant chunks.
     Loads the session-specific store from disk.
     """
+    
+    print("SEARCH SESSION:", session_id)
 
     collection_name = f"rfp_collection_{session_id}"
     persist_path = str(PERSIST_DIR / session_id)
+
+    print("PATH:", persist_path)
 
     if not Path(persist_path).exists():
         return []
@@ -83,7 +87,11 @@ def search_vector_store(session_id: str, query: str, k: int = 5):
             embedding_function=embeddings,
         )
 
-        return store.similarity_search(query, k=k)
+        results = store.similarity_search(query, k=k)
+
+        print("RESULT COUNT:", len(results))
+
+        return results
 
     except Exception as e:
         print(f"Vector search error: {e}")

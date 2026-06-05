@@ -60,8 +60,9 @@ export class ChatComponent {
   @Input() sessionId!: string;
 
   ngOnChanges(changes: SimpleChanges): void {
+    console.log('SESSION RECEIVED:', this.sessionId);
+
     if (changes['sessionId'] && this.sessionId) {
-      console.log('ACTIVE SESSION :', this.sessionId);
       this.loadHistoryForSession();
     }
   }
@@ -125,6 +126,7 @@ export class ChatComponent {
   // ASK QUESTION
   // -----------------------------------
   async askQuestion() {
+    console.log('ASK SESSION:', this.sessionId);
     // Prevent empty input
     if (!this.question.trim()) return;
 
@@ -172,10 +174,11 @@ export class ChatComponent {
       // -----------------------------------
       // Call Streaming API
       // -----------------------------------
+      console.log('STREAM SESSION:', this.sessionId);
       const response = await this.api.streamChat(
         this.sessionId,
-
         currentQuestion,
+       
       );
 
       // -----------------------------------

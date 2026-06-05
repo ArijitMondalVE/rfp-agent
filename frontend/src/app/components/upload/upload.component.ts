@@ -2,13 +2,12 @@ import { Component, EventEmitter, Output } from '@angular/core';
 import { ApiService } from '../../services/api.service';
 import { NgIf } from '@angular/common';
 
-
 @Component({
   selector: 'app-upload',
   standalone: true,
   imports: [NgIf],
 
-  templateUrl: './upload.component.html'
+  templateUrl: './upload.component.html',
 })
 export class UploadComponent {
   @Output() uploadComplete = new EventEmitter<any>();
@@ -22,7 +21,6 @@ export class UploadComponent {
   errorMessage: string | null = null;
 
   constructor(private api: ApiService) {}
-
 
   onFileSelected(event: any) {
     this.selectedFile = event.target.files[0];
@@ -40,10 +38,17 @@ export class UploadComponent {
     this.errorMessage = null;
     this.uploadResponse = null;
 
-    const sessionId = localStorage.getItem('rfp_chat_session_id_v1') || 'global';
+    const sessionId = localStorage.getItem('rfp_session_id');
+
+    if (!sessionId) {
+      this.errorMessage = 'No active session found. Please refresh the page.';
+      this.isUploading = false;
+      return;
+    }
+
+    console.log('UPLOAD SESSION:', sessionId);
 
     this.api.uploadRfp(this.selectedFile, sessionId).subscribe({
-
       next: (response) => {
         this.uploadResponse = response;
         console.log(response);
@@ -67,8 +72,7 @@ export class UploadComponent {
           }
         }
         this.isUploading = false;
-      }
+      },
     });
   }
 }
-
