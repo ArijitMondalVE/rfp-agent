@@ -38,3 +38,8 @@ class Conversation(Base):
         default=datetime.utcnow,
         onupdate=datetime.utcnow
     )
+
+    source_session_id = Column(
+        String,
+        nullable=True
+    )

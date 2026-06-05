@@ -57,6 +57,17 @@ def get_context(
 
     ).limit(5).all()
 
+    # If no context found, try source session
+    if not memories:
+        from app.services.chat_memory import get_source_session_id
+        source_id = get_source_session_id(session_id)
+        if source_id:
+            memories = db.query(
+                ContextMemory
+            ).filter(
+                ContextMemory.session_id == source_id
+            ).limit(5).all()
+
     db.close()
 
     return memories

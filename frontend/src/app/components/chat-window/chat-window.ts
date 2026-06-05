@@ -18,6 +18,8 @@ interface ChatSession {
   preview: string;
 
   updated_at?: string;
+
+  source_session_id?: string;
 }
 
 // ===================================
@@ -247,10 +249,13 @@ export class ChatWindow implements OnInit {
   // ===================================
 
   createNewChat(): void {
-    this.api.createNewChat().subscribe({
+    // Store previous session ID before creating new chat
+    const previousSessionId = this.sessionId;
+
+    // Pass current session ID so new chat inherits the document context
+    this.api.createNewChat(previousSessionId).subscribe({
       next: (res: any) => {
         const newSessionId = res.session_id;
-        const previousSessionId = this.sessionId;
         this.sessionId = newSessionId;
         this.messages = [];
 
@@ -264,11 +269,13 @@ export class ChatWindow implements OnInit {
         this.activeChatChanged.emit(newSessionId);
 
         // Add new chat to the list immediately so it appears in sidebar
+        // This new chat inherits context from the previous session
         this.chats = [
           {
             session_id: newSessionId,
             title: 'New Chat',
             preview: 'No messages',
+            source_session_id: previousSessionId, // Inherit from previous session
           },
           ...this.chats,
         ];

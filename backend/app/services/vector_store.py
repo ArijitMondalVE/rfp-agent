@@ -6,6 +6,7 @@ from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEndpointEmbeddings
 
 from app.core.config import HF_TOKEN
+from app.services.chat_memory import get_source_session_id
 
 
 # -----------------------------------
@@ -64,12 +65,19 @@ def search_vector_store(session_id: str, query: str, k: int = 5):
     """
     Search the vector store for relevant chunks.
     Loads the session-specific store from disk.
+    Falls back to source session's vector store if current session has none.
     """
     collection_name = f"rfp_collection_{session_id}"
     persist_path = str(Path("chroma_db") / session_id)
 
     if not Path(persist_path).exists():
-        return []
+        # Try source session's vector store
+        source_session_id = get_source_session_id(session_id)
+        if source_session_id:
+            collection_name = f"rfp_collection_{source_session_id}"
+            persist_path = str(Path("chroma_db") / source_session_id)
+        else:
+            return []
 
     try:
         client = chromadb.PersistentClient(path=persist_path)

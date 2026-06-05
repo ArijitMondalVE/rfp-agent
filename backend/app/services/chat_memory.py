@@ -61,18 +61,42 @@ def get_chat_history(session_id: str):
 # -----------------------------------
 # Create New Session
 # -----------------------------------
-def create_session() -> str:
-    """Create a new conversation session and return its ID."""
+def create_session(source_session_id: str = None) -> str:
+    """Create a new conversation session and return its ID.
+
+    If source_session_id is provided, the new session will inherit
+    context from that session (for sharing document context).
+    """
     import uuid
     db: Session = SessionLocal()
 
     session_id = str(uuid.uuid4())
-    conversation = Conversation(session_id=session_id, title="New Chat")
+    conversation = Conversation(
+        session_id=session_id,
+        title="New Chat",
+        source_session_id=source_session_id
+    )
     db.add(conversation)
     db.commit()
     db.close()
 
     return session_id
+
+
+# -----------------------------------
+# Get Source Session ID
+# -----------------------------------
+def get_source_session_id(session_id: str) -> str | None:
+    """Get the source session ID that a session inherits context from."""
+    db: Session = SessionLocal()
+
+    conversation = db.query(Conversation).filter(
+        Conversation.session_id == session_id
+    ).first()
+
+    source_id = conversation.source_session_id if conversation else None
+    db.close()
+    return source_id
 
 
 # ----------------------------------
@@ -100,7 +124,7 @@ def get_all_sessions(session_ids: list[str] = None):
 
         rows = db.execute(
             text(
-                "SELECT id, session_id, role, content, title, created_at, updated_at "
+                "SELECT id, session_id, role, content, title, created_at, updated_at, source_session_id "
                 f"FROM conversations WHERE session_id IN ({placeholders}) ORDER BY id DESC"
             ),
             params,
@@ -109,7 +133,7 @@ def get_all_sessions(session_ids: list[str] = None):
         seen = set()
         sessions = []
         for row in rows:
-            _id, session_id, role, content, title, created_at, updated_at = row
+            _id, session_id, role, content, title, created_at, updated_at, source_session_id = row
 
             if not session_id or session_id == "global":
                 continue
@@ -127,6 +151,7 @@ def get_all_sessions(session_ids: list[str] = None):
                 "title": session_title,
                 "preview": preview,
                 "updated_at": str(updated_at) if updated_at else None,
+                "source_session_id": source_session_id,
             })
 
         db.close()

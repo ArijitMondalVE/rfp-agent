@@ -82,8 +82,11 @@ export class ApiService {
     });
   }
 
-  createNewChat() {
-    return this.http.post(`${this.baseUrl}/sessions`, {});
+  createNewChat(sourceSessionId?: string) {
+    const url = sourceSessionId
+      ? `${this.baseUrl}/sessions?source_session_id=${encodeURIComponent(sourceSessionId)}`
+      : `${this.baseUrl}/sessions`;
+    return this.http.post(url, {});
   }
 
   deleteChat(sessionId: string) {

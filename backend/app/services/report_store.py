@@ -39,13 +39,20 @@ def save_report(session_id: str, report_data: Dict[str, Any]) -> None:
 # GET REPORT (per session)
 # -----------------------------------
 def get_report(session_id: str) -> Optional[Dict[str, Any]]:
-    """Get the report for a given session, or None if not found."""
+    """Get the report for a given session, or from source session if not found."""
     import json
 
     db: Session = SessionLocal()
 
     try:
         report = db.query(Report).filter(Report.session_id == session_id).first()
+
+        # Fallback to source session's report if not found
+        if not report:
+            from app.services.chat_memory import get_source_session_id
+            source_id = get_source_session_id(session_id)
+            if source_id:
+                report = db.query(Report).filter(Report.session_id == source_id).first()
 
         if not report:
             return None

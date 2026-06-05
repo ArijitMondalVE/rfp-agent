@@ -227,8 +227,14 @@ async def list_sessions(session_ids: str):
 # Create New Chat Session
 # -----------------------------------
 @router.post("/sessions")
-async def new_session():
-    session_id = create_session()
+async def new_session(source_session_id: str = None):
+    """Create a new chat session.
+
+    If source_session_id is provided, the new session will inherit
+    context from that session (allowing new chats to use previously
+    uploaded documents).
+    """
+    session_id = create_session(source_session_id=source_session_id)
     return {"session_id": session_id}
 
 
