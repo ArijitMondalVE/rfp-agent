@@ -78,29 +78,32 @@ def create_session() -> str:
 # ----------------------------------
 # Get All Sessions
 # ----------------------------------
-def get_all_sessions(requesting_session_id: str = None):
-    """Get conversation sessions for a specific user's session.
+def get_all_sessions(session_ids: list[str] = None):
+    """Get conversation sessions for one or more session IDs.
 
-    - Requires requesting_session_id to filter sessions.
-    - Returns only sessions matching the requesting session_id.
-    - This prevents cross-user data leakage.
+    - If session_ids is provided, returns sessions matching those IDs.
+    - If session_ids is empty/None, returns all sessions (admin-like access).
+    - This enables a single user to see ALL their own chats.
     """
     from sqlalchemy import text
 
     db: Session = SessionLocal()
 
     try:
-        if not requesting_session_id:
-            # No session ID provided - return empty for safety
+        if not session_ids:
+            # Return empty for safety
             db.close()
             return []
+
+        placeholders = ",".join([f":sid{i}" for i in range(len(session_ids))])
+        params = {f"sid{i}": sid for i, sid in enumerate(session_ids)}
 
         rows = db.execute(
             text(
                 "SELECT id, session_id, role, content, title, created_at, updated_at "
-                "FROM conversations WHERE session_id = :sid ORDER BY id DESC"
+                f"FROM conversations WHERE session_id IN ({placeholders}) ORDER BY id DESC"
             ),
-            {"sid": requesting_session_id}
+            params,
         ).fetchall()
 
         seen = set()

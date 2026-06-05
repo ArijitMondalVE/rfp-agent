@@ -66,10 +66,10 @@ export class ApiService {
     });
   }
 
-  getAllChats(sessionId: string) {
+  getAllChats(sessionIds: string[]) {
     return this.http.get(`${this.baseUrl}/sessions`, {
       params: {
-        session_id: sessionId,
+        session_ids: sessionIds.join(','),
       },
     });
   }

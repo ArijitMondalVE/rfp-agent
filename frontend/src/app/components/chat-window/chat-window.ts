@@ -52,6 +52,8 @@ export class ChatWindow implements OnInit {
 
   SESSION_STORAGE_KEY = 'rfp_session_id';
 
+  ALL_SESSIONS_STORAGE_KEY = 'rfp_all_session_ids';
+
   // ===================================
   // ACTIVE SESSION
   // ===================================
@@ -115,7 +117,8 @@ export class ChatWindow implements OnInit {
 
   ngOnInit(): void {
     this.sessionId = this.getOrCreateSessionId();
-    this.loadChats();
+    const allIds = this.getAllSessionIds();
+    this.loadChats(allIds.length > 0 ? allIds : [this.sessionId]);
   }
 
   // ===================================
@@ -138,9 +141,38 @@ export class ChatWindow implements OnInit {
         created,
       );
 
+      this.addSessionToList(created);
+
       return created;
     } catch {
       return 'global';
+    }
+  }
+
+  private getAllSessionIds(): string[] {
+    try {
+      const raw = localStorage.getItem(this.ALL_SESSIONS_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((s: string) => s && s.trim().length > 0);
+        }
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  }
+
+  private addSessionToList(sessionId: string): void {
+    try {
+      const ids = this.getAllSessionIds();
+      if (!ids.includes(sessionId)) {
+        ids.push(sessionId);
+        localStorage.setItem(this.ALL_SESSIONS_STORAGE_KEY, JSON.stringify(ids));
+      }
+    } catch {
+      // ignore
     }
   }
 
@@ -164,8 +196,13 @@ export class ChatWindow implements OnInit {
   // LOAD ALL CHATS
   // ===================================
 
-  loadChats(requestingSessionId?: string): void {
-    const sessionToQuery = requestingSessionId ?? this.sessionId;
+  loadChats(sessionIds?: string[]): void {
+    const allIds = sessionIds ?? this.getAllSessionIds();
+
+    if (allIds.length === 0) {
+      this.chats = [];
+      return;
+    }
 
     this.loading = true;
 
@@ -173,7 +210,7 @@ export class ChatWindow implements OnInit {
 
     this.cdr.detectChanges();
 
-    this.api.getAllChats(sessionToQuery).subscribe({
+    this.api.getAllChats(allIds).subscribe({
       next: (res: any) => {
         this.chats = res?.sessions || [];
 
@@ -219,6 +256,9 @@ export class ChatWindow implements OnInit {
 
         // Persist new session
         this.safeStorageSet(this.SESSION_STORAGE_KEY, newSessionId);
+
+        // Track all session IDs
+        this.addSessionToList(newSessionId);
 
         // Emit active session
         this.activeChatChanged.emit(newSessionId);
@@ -269,7 +309,7 @@ export class ChatWindow implements OnInit {
           this.safeStorageSet(this.SESSION_STORAGE_KEY, this.sessionId);
           this.activeChatChanged.emit(this.sessionId);
         }
-        this.loadChats();
+        this.loadChats(this.getAllSessionIds());
         this.closeDeleteModal();
       },
       error: (err: unknown) => {
@@ -301,6 +341,7 @@ export class ChatWindow implements OnInit {
         const newSession = crypto.randomUUID();
 
         localStorage.setItem('rfp_session_id', newSession);
+        localStorage.setItem('rfp_all_session_ids', JSON.stringify([newSession]));
 
         this.chats = [];
         this.messages = [];

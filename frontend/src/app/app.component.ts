@@ -34,6 +34,7 @@ type RecentDoc = {
 export class AppComponent implements OnDestroy, OnInit {
   @ViewChild('reportComp') reportComp!: ReportComponent;
   @ViewChild('chatComp') chatComp!: ChatComponent;
+  @ViewChild('chatWindow') chatWindow!: ChatWindow;
   @ViewChild('reportPanel')
   reportPanel!: ElementRef<HTMLDivElement>;
 
@@ -276,6 +277,12 @@ export class AppComponent implements OnDestroy, OnInit {
 
     if (this.chatComp) {
       this.chatComp.resetToEmptyState();
+    }
+  }
+
+  onMessageStreamComplete() {
+    if (this.chatWindow) {
+      this.chatWindow.loadChats();
     }
   }
 

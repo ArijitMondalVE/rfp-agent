@@ -213,8 +213,13 @@ async def chat_history(session_id: str):
 # Get All Chat Sessions
 # -----------------------------------
 @router.get("/sessions")
-async def list_sessions(session_id: str):
-    sessions = get_all_sessions(requesting_session_id=session_id)
+async def list_sessions(session_ids: str):
+    """Get all chat sessions for the user's known session IDs.
+
+    session_ids is a comma-separated list of session UUIDs.
+    """
+    session_id_list = [s.strip() for s in session_ids.split(",") if s.strip()]
+    sessions = get_all_sessions(session_ids=session_id_list)
     return {"sessions": sessions}
 
 

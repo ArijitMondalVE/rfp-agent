@@ -5,6 +5,8 @@ import {
   Input,
   SimpleChanges,
   ViewChild,
+  Output,
+  EventEmitter,
 } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
@@ -58,6 +60,8 @@ export class ChatComponent {
   // Input: active chat session
   // -----------------------------------
   @Input() sessionId: string = '';
+
+  @Output() messageStreamComplete = new EventEmitter<void>();
 
   ngOnChanges(changes: SimpleChanges): void {
     console.log('SESSION RECEIVED:', this.sessionId);
@@ -293,6 +297,11 @@ export class ChatComponent {
       // Refresh UI
       // -----------------------------------
       this.cdr.detectChanges();
+
+      // -----------------------------------
+      // Refresh sidebar titles (auto-rename)
+      // -----------------------------------
+      this.messageStreamComplete.emit();
     }
   }
 

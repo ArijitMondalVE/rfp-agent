@@ -106,6 +106,7 @@
         <!-- Chat History -->
         <div class="sidebar-chat-section flex-1 min-h-0">
           <app-chat-window
+            #chatWindow
             (activeChatChanged)="onActiveChatChanged($event)"
             (allChatsCleared)="onAllChatsCleared()"
           ></app-chat-window>
@@ -138,7 +139,7 @@
       <div class="chat-wrapper flex-1 min-h-0 overflow-hidden flex flex-col">
         <div class="chat-section-inner-wrapper flex-1 min-h-0 p-6 overflow-y-auto">
           <div class="max-w-5xl w-full mx-auto h-full flex flex-col">
-            <app-chat #chatComp class="flex-1 w-full" [sessionId]="activeSessionId"></app-chat>
+            <app-chat #chatComp class="flex-1 w-full" [sessionId]="activeSessionId" (messageStreamComplete)="onMessageStreamComplete()"></app-chat>
           </div>
         </div>
       </div>
