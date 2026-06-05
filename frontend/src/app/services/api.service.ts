@@ -2,56 +2,46 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 
-
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class ApiService {
-
   baseUrl = environment.apiUrl;
 
   constructor(private http: HttpClient) {}
 
   uploadRfp(file: File, sessionId: string) {
-
+    console.log('UPLOAD SESSION:', sessionId);
     const formData = new FormData();
 
     formData.append('file', file);
 
     return this.http.post(
       `${this.baseUrl}/upload?session_id=${encodeURIComponent(sessionId)}`,
-      formData
+      formData,
     );
   }
 
-
   chatWithRfp(sessionId: string, question: string) {
-
-    return this.http.get(
-      `${this.baseUrl}/chat`,
-      {
-        params: {
-          session_id: sessionId,
-          question: question
-        }
-      }
-    );
+    console.log('CHAT SESSION:', sessionId);
+    return this.http.get(`${this.baseUrl}/chat`, {
+      params: {
+        session_id: sessionId,
+        question: question,
+      },
+    });
   }
 
   searchRfp(query: string) {
-
-    return this.http.get(
-      `${this.baseUrl}/search`,
-      {
-        params: {
-          query: query
-        }
-      }
-    );
+    return this.http.get(`${this.baseUrl}/search`, {
+      params: {
+        query: query,
+      },
+    });
   }
 
   streamChat(sessionId: string, question: string) {
-    const url =`${this.baseUrl}/stream-chat?session_id=${sessionId}&question=${encodeURIComponent(question)}`;
+    const url = `${this.baseUrl}/stream-chat?session_id=${sessionId}&question=${encodeURIComponent(question)}`;
 
     return fetch(url, {
       method: 'GET',
@@ -59,11 +49,9 @@ export class ApiService {
         Accept: 'text/event-stream',
         // Hint: don't let browsers/proxies buffer
         'Cache-Control': 'no-cache',
-
       },
     });
   }
-
 
   // Fetch saved conversation history.
   // Expected backend to return either:
@@ -72,8 +60,8 @@ export class ApiService {
   getChatHistory(sessionId: string) {
     return this.http.get(`${this.baseUrl}/chat-history`, {
       params: {
-        session_id: sessionId
-      }
+        session_id: sessionId,
+      },
     });
   }
 
@@ -85,8 +73,8 @@ export class ApiService {
   clearChat(sessionId: string) {
     return this.http.delete(`${this.baseUrl}/clear-chat`, {
       params: {
-        session_id: sessionId
-      }
+        session_id: sessionId,
+      },
     });
   }
 
@@ -110,6 +98,3 @@ export class ApiService {
     return this.http.get(`${this.baseUrl}/documents`);
   }
 }
-
-
-

@@ -113,7 +113,7 @@ export class AppComponent implements OnDestroy {
   recentDocuments: RecentDoc[] = [];
 
   // Selected chat session id from sidebar.
-  activeSessionId: string = 'global';
+  activeSessionId: string = '';
 
   // Trigger to reset main chat UI when all chats are cleared
   chatResetTrigger = 0;
@@ -231,7 +231,7 @@ export class AppComponent implements OnDestroy {
 
   onAllChatsCleared() {
     this.chatResetTrigger++;
-    this.activeSessionId = 'global';
+    this.activeSessionId = '';
     if (this.chatComp) {
       this.chatComp.resetToEmptyState();
     }
