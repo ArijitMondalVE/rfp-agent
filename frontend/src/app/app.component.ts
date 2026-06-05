@@ -77,9 +77,14 @@ export class AppComponent implements OnDestroy, OnInit {
   onActiveChatChanged(sessionId: string) {
     console.log('CHAT WINDOW EMITTED:', sessionId);
 
-    if (sessionId?.trim()) {
+    // Ignore "global" or empty session IDs - they corrupt the session state
+    if (sessionId?.trim() && sessionId !== 'global') {
       this.activeSessionId = sessionId;
     }
+
+    // Force change detection for OnPush
+    this.cdr.detectChanges();
+    this.cdr.markForCheck();
   }
 
   private getOrCreateSessionId(): string {
