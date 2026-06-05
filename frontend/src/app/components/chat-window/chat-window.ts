@@ -50,7 +50,6 @@ export class ChatWindow implements OnInit {
   // STORAGE KEY
   // ===================================
 
-
   SESSION_STORAGE_KEY = 'rfp_session_id';
 
   // ===================================
@@ -173,7 +172,6 @@ export class ChatWindow implements OnInit {
     this.cdr.detectChanges();
 
     this.api.getAllChats().subscribe({
-
       next: (res: any) => {
         this.chats = res?.sessions || [];
 
@@ -226,7 +224,7 @@ export class ChatWindow implements OnInit {
         console.error(err);
         this.error = 'Failed to create new chat.';
         this.cdr.detectChanges();
-      }
+      },
     });
   }
 
@@ -248,9 +246,11 @@ export class ChatWindow implements OnInit {
     this.api.deleteChat(this.chatToDelete.session_id).subscribe({
       next: () => {
         if (this.sessionId === this.chatToDelete!.session_id) {
-          this.sessionId = this.chats.length > 1
-            ? this.chats.find(c => c.session_id !== this.chatToDelete!.session_id)?.session_id || 'global'
-            : 'global';
+          this.sessionId =
+            this.chats.length > 1
+              ? this.chats.find((c) => c.session_id !== this.chatToDelete!.session_id)
+                  ?.session_id || this.getOrCreateSessionId()
+              :this.getOrCreateSessionId();
           this.safeStorageSet(this.SESSION_STORAGE_KEY, this.sessionId);
           this.activeChatChanged.emit(this.sessionId);
         }
@@ -262,7 +262,7 @@ export class ChatWindow implements OnInit {
         this.error = 'Failed to delete chat.';
         this.closeDeleteModal();
         this.cdr.detectChanges();
-      }
+      },
     });
   }
 
@@ -283,20 +283,19 @@ export class ChatWindow implements OnInit {
   confirmClearAll(): void {
     this.api.clearAllChats().subscribe({
       next: () => {
+        const newSession = crypto.randomUUID();
+
+        localStorage.setItem('rfp_session_id', newSession);
+
         this.chats = [];
-        this.sessionId = '';
         this.messages = [];
-        this.safeStorageRemove('rfp_chat_session_id_v1');
-        this.activeChatChanged.emit(this.sessionId);
+        this.sessionId = newSession;
+
+        this.activeChatChanged.emit(newSession);
         this.allChatsCleared.emit();
+
         this.closeDeleteModal();
       },
-      error: (err: unknown) => {
-        console.error(err);
-        this.error = 'Failed to clear all chats.';
-        this.closeDeleteModal();
-        this.cdr.detectChanges();
-      }
     });
   }
 
@@ -337,7 +336,7 @@ export class ChatWindow implements OnInit {
         console.error(err);
         this.error = 'Failed to rename chat.';
         this.cdr.detectChanges();
-      }
+      },
     });
   }
 
@@ -408,7 +407,6 @@ export class ChatWindow implements OnInit {
         // Chat history rendering/auto-scroll is handled in `ChatComponent`.
         // Keeping this here would require querying DOM nodes that don't exist in
         // this template.
-
       },
 
       error: (err: unknown) => {
@@ -456,5 +454,4 @@ export class ChatWindow implements OnInit {
     // Keep this as a no-op to avoid querying a DOM element that isn't
     // present in this template.
   }
-
 }

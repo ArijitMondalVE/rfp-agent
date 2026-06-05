@@ -31,7 +31,7 @@ type RecentDoc = {
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class AppComponent implements OnDestroy ,OnInit {
+export class AppComponent implements OnDestroy, OnInit {
   @ViewChild('reportComp') reportComp!: ReportComponent;
   @ViewChild('chatComp') chatComp!: ChatComponent;
   @ViewChild('reportPanel')
@@ -75,12 +75,12 @@ export class AppComponent implements OnDestroy ,OnInit {
   //Session
 
   onActiveChatChanged(sessionId: string) {
-  console.log('CHAT WINDOW EMITTED:', sessionId);
+    console.log('CHAT WINDOW EMITTED:', sessionId);
 
-  if (sessionId?.trim()) {
-    this.activeSessionId = sessionId;
+    if (sessionId?.trim()) {
+      this.activeSessionId = sessionId;
+    }
   }
-}
 
   private getOrCreateSessionId(): string {
     const key = 'rfp_session_id';
@@ -266,7 +266,9 @@ export class AppComponent implements OnDestroy ,OnInit {
 
   onAllChatsCleared() {
     this.chatResetTrigger++;
-    this.activeSessionId = this.getOrCreateSessionId();
+
+    this.activeSessionId = localStorage.getItem('rfp_session_id') || '';
+
     if (this.chatComp) {
       this.chatComp.resetToEmptyState();
     }
