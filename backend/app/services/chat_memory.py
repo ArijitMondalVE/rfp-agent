@@ -75,32 +75,39 @@ def create_session() -> str:
     return session_id
 
 
-# -----------------------------------
+# ----------------------------------
 # Get All Sessions
-# -----------------------------------
-def get_all_sessions():
-    """Get all conversation sessions ordered by most recent.
+# ----------------------------------
+def get_all_sessions(requesting_session_id: str = None):
+    """Get conversation sessions for a specific user's session.
 
-    Note: Without user authentication, this returns ALL sessions.
-    The frontend should only display sessions that match the user's localStorage.
+    - Requires requesting_session_id to filter sessions.
+    - Returns only sessions matching the requesting session_id.
+    - This prevents cross-user data leakage.
     """
     from sqlalchemy import text
 
     db: Session = SessionLocal()
 
     try:
-        # Query conversations table using SQLAlchemy ORM
+        if not requesting_session_id:
+            # No session ID provided - return empty for safety
+            db.close()
+            return []
+
         rows = db.execute(
-            text("SELECT id, session_id, role, content, title, created_at, updated_at FROM conversations ORDER BY id DESC")
+            text(
+                "SELECT id, session_id, role, content, title, created_at, updated_at "
+                "FROM conversations WHERE session_id = :sid ORDER BY id DESC"
+            ),
+            {"sid": requesting_session_id}
         ).fetchall()
 
         seen = set()
         sessions = []
         for row in rows:
-            # Row order: (id, session_id, role, content, title, created_at, updated_at)
             _id, session_id, role, content, title, created_at, updated_at = row
 
-            # Skip "global" or empty session IDs - they indicate improperly initialized sessions
             if not session_id or session_id == "global":
                 continue
 
@@ -108,10 +115,8 @@ def get_all_sessions():
                 continue
             seen.add(session_id)
 
-            # Use title from DB if not default "New Chat" and available
             session_title = title if title and title != "New Chat" else "New Chat"
 
-            # For preview, try to get last message from chat_messages table
             preview = "No messages"
 
             sessions.append({
@@ -125,10 +130,8 @@ def get_all_sessions():
         return sessions
 
     except Exception:
-        # Fallback: if query fails, return an empty list instead of 500.
         db.close()
         return []
-
 
 
 # -----------------------------------

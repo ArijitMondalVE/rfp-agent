@@ -213,8 +213,8 @@ async def chat_history(session_id: str):
 # Get All Chat Sessions
 # -----------------------------------
 @router.get("/sessions")
-async def list_sessions():
-    sessions = get_all_sessions()
+async def list_sessions(session_id: str):
+    sessions = get_all_sessions(requesting_session_id=session_id)
     return {"sessions": sessions}
 
 

@@ -32,9 +32,10 @@ export class ApiService {
     });
   }
 
-  searchRfp(query: string) {
+  searchRfp(sessionId: string, query: string) {
     return this.http.get(`${this.baseUrl}/search`, {
       params: {
+        session_id: sessionId,
         query: query,
       },
     });
@@ -65,9 +66,12 @@ export class ApiService {
     });
   }
 
-  getAllChats() {
-    // Backend exposes /sessions endpoint for listing all chat sessions
-    return this.http.get(`${this.baseUrl}/sessions`);
+  getAllChats(sessionId: string) {
+    return this.http.get(`${this.baseUrl}/sessions`, {
+      params: {
+        session_id: sessionId,
+      },
+    });
   }
 
   clearChat(sessionId: string) {

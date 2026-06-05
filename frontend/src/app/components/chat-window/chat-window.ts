@@ -171,7 +171,7 @@ export class ChatWindow implements OnInit {
 
     this.cdr.detectChanges();
 
-    this.api.getAllChats().subscribe({
+    this.api.getAllChats(this.sessionId).subscribe({
       next: (res: any) => {
         this.chats = res?.sessions || [];
 
