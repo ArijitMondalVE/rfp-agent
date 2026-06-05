@@ -79,7 +79,11 @@ def create_session() -> str:
 # Get All Sessions
 # -----------------------------------
 def get_all_sessions():
-    """Get all conversation sessions ordered by most recent."""
+    """Get all conversation sessions ordered by most recent.
+
+    Note: Without user authentication, this returns ALL sessions.
+    The frontend should only display sessions that match the user's localStorage.
+    """
     from sqlalchemy import text
 
     db: Session = SessionLocal()
@@ -95,6 +99,11 @@ def get_all_sessions():
         for row in rows:
             # Row order: (id, session_id, role, content, title, created_at, updated_at)
             _id, session_id, role, content, title, created_at, updated_at = row
+
+            # Skip "global" or empty session IDs - they indicate improperly initialized sessions
+            if not session_id or session_id == "global":
+                continue
+
             if session_id in seen:
                 continue
             seen.add(session_id)

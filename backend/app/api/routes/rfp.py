@@ -9,7 +9,6 @@ from sqlalchemy.orm import Session
 from fastapi.responses import FileResponse
 
 from app.db.database import SessionLocal
-from app.models.report import Report
 from app.models.chat_message import ChatMessage
 
 from app.services.pdf_parser import extract_text_from_pdf
@@ -119,17 +118,8 @@ async def upload_rfp(session_id: str, file: UploadFile = File(...)):
     """,
     )
 
-    # Store latest report in memory
-    # (report_store exposes a module-level dict named `reports`)
-    report_store.reports[session_id] = aggregated
-
-
-    # Save report to database
-    db: Session = SessionLocal()
-    report = Report(report_json=json.dumps(aggregated))
-    db.add(report)
-    db.commit()
-    db.close()
+    # Store report in database (per session)
+    report_store.save_report(session_id, aggregated)
 
     # API Response
     return {
@@ -153,7 +143,7 @@ async def get_documents():
 
 @router.get("/report")
 async def get_report(session_id: str):
-    report = report_store.reports.get(session_id)
+    report = report_store.get_report(session_id)
     if not report:
         return {"error": "No report available. Upload an RFP first."}
     return report
@@ -190,7 +180,7 @@ async def stream_chat(session_id: str, question: str):
 # -----------------------------------
 @router.get("/export-docx")
 async def export_docx(session_id: str):
-    report = report_store.reports.get(session_id)
+    report = report_store.get_report(session_id)
     if not report:
         return {"error": "No report found"}
 
@@ -203,7 +193,7 @@ async def export_docx(session_id: str):
 # -----------------------------------
 @router.get("/export-pdf")
 async def export_pdf(session_id: str):
-    report = report_store.reports.get(session_id)
+    report = report_store.get_report(session_id)
     if not report:
         return {"error": "No report found"}
 
