@@ -1,5 +1,4 @@
 import { Component } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import { CommonModule, NgIf, NgFor } from '@angular/common';
 
 import { ApiService } from '../../services/api.service';
@@ -22,16 +21,13 @@ export class ReportComponent {
   exportError: string | null = null;
   previewCollapsed = false;
 
-  baseUrl = 'http://127.0.0.1:8000'; // Adjust if your backend is hosted elsewhere
-
   // Resizing state
   private previewResizableBodyEl: HTMLElement | null = null;
   private resizeStartY = 0;
   private resizeStartH = 0;
 
   constructor(
-    private api: ApiService,
-    private http: HttpClient
+    private api: ApiService
   ) {}
 
   ngAfterViewInit() {
@@ -109,15 +105,28 @@ export class ReportComponent {
     window.URL.revokeObjectURL(url);
   }
 
-  private exportFile(endpoint: string, filename: string) {
+  private getSessionId(): string {
+    return localStorage.getItem('rfp_session_id') || '';
+  }
+
+  private exportFile(format: 'docx' | 'pdf') {
     this.exporting = true;
     this.exportError = null;
 
-    return this.http.get(`${this.baseUrl}${endpoint}`, {
-      responseType: 'blob',
-    }).subscribe({
+    const sessionId = this.getSessionId();
+    if (!sessionId) {
+      this.exportError = 'No active session. Upload an RFP first.';
+      this.exporting = false;
+      return;
+    }
+
+    const apiCall = format === 'docx'
+      ? this.api.exportDocx(sessionId)
+      : this.api.exportPdf(sessionId);
+
+    apiCall.subscribe({
       next: (blob) => {
-        this.downloadBlob(blob, filename);
+        this.downloadBlob(blob, `rfp_report.${format}`);
         this.exporting = false;
       },
       error: (err) => {
@@ -129,11 +138,11 @@ export class ReportComponent {
   }
 
   downloadDocx() {
-    this.exportFile('/export-docx', 'rfp_report.docx');
+    this.exportFile('docx');
   }
 
   downloadPdf() {
-    this.exportFile('/export-pdf', 'rfp_report.pdf');
+    this.exportFile('pdf');
   }
 
   togglePreview(): void {
