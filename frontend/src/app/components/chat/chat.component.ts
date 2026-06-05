@@ -62,23 +62,24 @@ export class ChatComponent {
   ngOnChanges(changes: SimpleChanges): void {
     console.log('SESSION RECEIVED:', this.sessionId);
 
-    if (changes['sessionId'] && this.sessionId) {
+    if (changes['sessionId'] && this.sessionId?.trim()) {
       this.loadHistoryForSession();
     }
   }
 
   private loadHistoryForSession(): void {
-    // Load existing chat history for the active session.
-    // Note: streaming new messages will append to `this.messages`.
-    this.api.getChatHistory(this.sessionId).subscribe({
+    const currentSessionId = this.sessionId?.trim() || localStorage.getItem('rfp_session_id') || '';
+
+    if (!currentSessionId) {
+      this.messages = [];
+      return;
+    }
+
+    this.api.getChatHistory(currentSessionId).subscribe({
       next: (res: any) => {
         const payload = res?.messages ?? res;
         this.messages = Array.isArray(payload) ? payload : [];
         this.cdr.detectChanges();
-        this.scheduleUiUpdate(() => {
-          const container = this.messagesContainer?.nativeElement;
-          if (container) container.scrollTop = container.scrollHeight;
-        });
       },
       error: () => {
         this.messages = [];
@@ -102,7 +103,6 @@ export class ChatComponent {
 
   ngAfterViewInit(): void {
     // Ensure initial render uses selected session.
-    this.loadHistoryForSession();
   }
 
   // -----------------------------------

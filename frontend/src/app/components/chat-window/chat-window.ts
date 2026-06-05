@@ -181,10 +181,13 @@ export class ChatWindow implements OnInit {
 
         // Auto-load active chat or first chat - deferred to avoid NG0100
         if (this.chats.length > 0) {
-          const activeChat =
-            this.chats.find((chat) => chat.session_id === this.sessionId) || this.chats[0];
+          const currentSession = localStorage.getItem(this.SESSION_STORAGE_KEY);
 
-          setTimeout(() => this.selectChat(activeChat));
+          const activeChat = this.chats.find((chat) => chat.session_id === currentSession);
+
+          if (activeChat) {
+            setTimeout(() => this.selectChat(activeChat));
+          }
         }
       },
 
@@ -250,7 +253,7 @@ export class ChatWindow implements OnInit {
             this.chats.length > 1
               ? this.chats.find((c) => c.session_id !== this.chatToDelete!.session_id)
                   ?.session_id || this.getOrCreateSessionId()
-              :this.getOrCreateSessionId();
+              : this.getOrCreateSessionId();
           this.safeStorageSet(this.SESSION_STORAGE_KEY, this.sessionId);
           this.activeChatChanged.emit(this.sessionId);
         }
