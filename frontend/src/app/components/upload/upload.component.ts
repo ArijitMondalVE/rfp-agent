@@ -38,7 +38,7 @@ export class UploadComponent {
     this.errorMessage = null;
     this.uploadResponse = null;
 
-    const sessionId = localStorage.getItem('rfp_session_id');
+    const sessionId = localStorage.getItem('rfp_session_id') || '';
 
     if (!sessionId) {
       this.errorMessage = 'No active session found. Please refresh the page.';
