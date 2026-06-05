@@ -8,7 +8,10 @@
       "Bash(python -c \"from app.services.chat_memory import get_chat_history, get_all_sessions; h = get_chat_history\\(''stream-session''\\); print\\(''History for stream-session:'', len\\(h\\), ''messages''\\); s = get_all_sessions\\(\\); print\\(''Sessions:'', len\\(s\\)\\)\")",
       "Bash(.venv/Scripts/python -c \"from app.services.chat_memory import get_all_sessions; s = get_all_sessions\\(\\); print\\(''Sessions:'', len\\(s\\)\\); [print\\('' '', x\\) for x in s[:5]]\")",
       "Bash(uv run python -c \":*)",
-      "Bash(npm run build)"
+      "Bash(npm run build)",
+      "Bash(git add backend/app/main.py backend/app/models/report.py)",
+      "Bash(git commit:*)",
+      "Bash(git push origin main)"
     ]
   }
 }
