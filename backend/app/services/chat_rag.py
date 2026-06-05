@@ -211,12 +211,18 @@ def chat_with_rfp(session_id: str, question: str):
 
     # Empty context
     if not context.strip():
-
-        answer = "No relevant information " "was found in the uploaded document."
+        # Provide a more actionable message when the vector store/session context is missing.
+        answer = (
+            "No relevant information was found in the uploaded document. "
+            "This can happen if the document was not uploaded for this session or "
+            "the server restarted and the in-memory vector index is missing. "
+            "Please re-upload the document for this session and try again."
+        )
 
         save_chat_message(session_id, "assistant", answer)
 
         return {"session_id": session_id, "question": question, "answer": answer}
+
 
     # Retrieve history
     history_text = retrieve_history(session_id)
@@ -263,7 +269,10 @@ async def stream_chat_with_rfp(session_id: str, question: str):
         async def empty_response():
 
             yield (
-                "data: No relevant information "
+                "data: No relevant information was found in the uploaded document. "
+                "This can happen if the document was not uploaded for this session or "
+                "the server restarted and the in-memory vector index is missing. "
+                "Please re-upload the document for this session and try again.\n\n"
                 "was found in the uploaded document.\n\n"
             )
 
