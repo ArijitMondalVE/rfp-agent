@@ -326,4 +326,35 @@ export class ChatComponent {
     this.loading = false;
     this.cdr.detectChanges();
   }
+
+  downloadReport(format: 'docx' | 'pdf'): void {
+    const currentSessionId = this.sessionId?.trim()
+      ? this.sessionId
+      : localStorage.getItem('rfp_session_id') || '';
+
+    if (!currentSessionId) {
+      console.error('No session ID for download');
+      return;
+    }
+
+    const apiCall = format === 'docx'
+      ? this.api.exportDocx(currentSessionId)
+      : this.api.exportPdf(currentSessionId);
+
+    apiCall.subscribe({
+      next: (blob: Blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = window.document.createElement('a');
+        a.href = url;
+        a.download = `rfp_report.${format}`;
+        window.document.body.appendChild(a);
+        a.click();
+        window.document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      },
+      error: (err) => {
+        console.error(`Failed to download ${format}:`, err);
+      },
+    });
+  }
 }

@@ -104,4 +104,18 @@ export class ApiService {
   getUploadedDocuments() {
     return this.http.get(`${this.baseUrl}/documents`);
   }
+
+  exportDocx(sessionId: string) {
+    return this.http.get(`${this.baseUrl}/export-docx`, {
+      params: { session_id: sessionId },
+      responseType: 'blob',
+    });
+  }
+
+  exportPdf(sessionId: string) {
+    return this.http.get(`${this.baseUrl}/export-pdf`, {
+      params: { session_id: sessionId },
+      responseType: 'blob',
+    });
+  }
 }

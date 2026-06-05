@@ -37,6 +37,7 @@ app.add_middleware(
         "https://rfp-agent-b8c2q1dl1-arijit-s-projects3.vercel.app",
         "https://rfp-agent-j7kfj6sk5-arijit-s-projects3.vercel.app",
         "https://rfp-agent.vercel.app",
+        "https://rfp-agent-delta.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
