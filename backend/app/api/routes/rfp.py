@@ -8,7 +8,6 @@ from fastapi import APIRouter, UploadFile, File
 
 from fastapi.responses import FileResponse
 
-from backend.app.models import report
 from sqlalchemy.orm import Session
 
 from app.db.database import SessionLocal

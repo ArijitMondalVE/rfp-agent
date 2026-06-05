@@ -3,7 +3,8 @@
     <div>
       <h2 class="text-lg font-semibold text-white">Report</h2>
       <p class="mt-1 text-sm text-slate-300">
-        Export the latest analyzed report (DOCX/PDF). Note: the backend stores the latest report in memory.
+        Export the latest analyzed report (DOCX/PDF). Note: the backend stores the latest report in
+        memory.
       </p>
     </div>
 
@@ -41,7 +42,6 @@
     Copy failed. Please try again.
   </div>
 
-
   <div class="rounded-xl border border-white/10 bg-slate-900/30 p-4 preview-resizable-root">
     <!-- Preview Header (always visible) -->
     <div class="flex items-center justify-between gap-4">
@@ -67,8 +67,9 @@
       <button
         class="upload-action inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-medium shadow-soft transition active:scale-[0.99] disabled:opacity-60"
         [ngClass]="{
-          'bg-emerald-500/20 text-emerald-100 border border-emerald-500/30': copyStatus === 'copied',
-          'hover:brightness-105': copyStatus !== 'copied'
+          'bg-emerald-500/20 text-emerald-100 border border-emerald-500/30':
+            copyStatus === 'copied',
+          'hover:brightness-105': copyStatus !== 'copied',
         }"
         [disabled]="!latestReport || copyStatus === 'copied'"
         (click)="copyReportText()"
@@ -79,24 +80,14 @@
       </button>
     </div>
 
-
-    <!-- Preview Body (Angular structural directive — removes from DOM when collapsed) -->
-    <div class="preview-resizable-body" [class.body-resizing]="false" style="max-height: 70vh;">
-      <div
-        class="preview-drag-handle"
-        (mousedown)="onResizeStart($event)"
-        (touchstart)="onResizeStart($event)"
-        aria-label="Resize preview"
-        role="separator"
-      ></div>
-
-      <ng-container *ngIf="!previewCollapsed">
+    <ng-container *ngIf="!previewCollapsed">
       <ng-container *ngIf="latestReport; else emptyStateTpl">
         <div class="mt-3 space-y-6">
-
           <!-- Executive Summary -->
           <div *ngIf="latestReport?.summary?.length">
-            <div class="report-section-title text-sm text-white border-b border-white/10 pb-1 mb-3">Executive Summary</div>
+            <div class="report-section-title text-sm text-white border-b border-white/10 pb-1 mb-3">
+              Executive Summary
+            </div>
             <div class="mt-2 report-body whitespace-pre-wrap">
               {{ getSummaryText() }}
             </div>
@@ -104,7 +95,9 @@
 
           <!-- Scope of Work -->
           <div *ngIf="latestReport?.scope_of_work?.length">
-            <div class="report-section-title text-sm text-white border-b border-white/10 pb-1 mb-3">Scope of Work</div>
+            <div class="report-section-title text-sm text-white border-b border-white/10 pb-1 mb-3">
+              Scope of Work
+            </div>
             <ul class="mt-2 list-disc pl-5 text-sm text-slate-200 space-y-1.5">
               <li *ngFor="let item of latestReport.scope_of_work">
                 {{ formatItem(item) }}
@@ -114,7 +107,9 @@
 
           <!-- Deliverables -->
           <div *ngIf="latestReport?.deliverables?.length">
-            <div class="report-section-title text-sm text-white border-b border-white/10 pb-1 mb-3">Deliverables</div>
+            <div class="report-section-title text-sm text-white border-b border-white/10 pb-1 mb-3">
+              Deliverables
+            </div>
             <ul class="mt-2 list-disc pl-5 text-sm text-slate-200 space-y-1.5">
               <li *ngFor="let item of latestReport.deliverables">
                 {{ formatItem(item) }}
@@ -124,7 +119,9 @@
 
           <!-- Objectives -->
           <div *ngIf="latestReport?.objectives?.length">
-            <div class="report-section-title text-sm text-white border-b border-white/10 pb-1 mb-3">Objectives</div>
+            <div class="report-section-title text-sm text-white border-b border-white/10 pb-1 mb-3">
+              Objectives
+            </div>
             <ul class="mt-2 list-disc pl-5 text-sm text-slate-200 space-y-1.5">
               <li *ngFor="let item of latestReport.objectives">
                 {{ formatItem(item) }}
@@ -134,7 +131,9 @@
 
           <!-- Deadlines -->
           <div *ngIf="latestReport?.deadlines?.length">
-            <div class="report-section-title text-sm text-white border-b border-white/10 pb-1 mb-3">Deadlines</div>
+            <div class="report-section-title text-sm text-white border-b border-white/10 pb-1 mb-3">
+              Deadlines
+            </div>
             <ul class="mt-2 list-disc pl-5 text-sm text-slate-200 space-y-1.5">
               <li *ngFor="let item of latestReport.deadlines">
                 {{ formatItem(item) }}
@@ -144,7 +143,9 @@
 
           <!-- Staffing Requirements -->
           <div *ngIf="latestReport?.staffing_requirements?.length">
-            <div class="report-section-title text-sm text-white border-b border-white/10 pb-1 mb-3">Staffing Requirements</div>
+            <div class="report-section-title text-sm text-white border-b border-white/10 pb-1 mb-3">
+              Staffing Requirements
+            </div>
             <ul class="mt-2 list-disc pl-5 text-sm text-slate-200 space-y-1.5">
               <li *ngFor="let item of latestReport.staffing_requirements">
                 {{ formatItem(item) }}
@@ -154,23 +155,24 @@
 
           <!-- Compliance Items -->
           <div *ngIf="latestReport?.compliance_items?.length">
-            <div class="report-section-title text-sm text-white border-b border-white/10 pb-1 mb-3">Compliance Items</div>
+            <div class="report-section-title text-sm text-white border-b border-white/10 pb-1 mb-3">
+              Compliance Items
+            </div>
             <ul class="mt-2 list-disc pl-5 text-sm text-slate-200 space-y-1.5">
               <li *ngFor="let item of latestReport.compliance_items">
                 {{ formatItem(item) }}
               </li>
             </ul>
           </div>
-
         </div>
       </ng-container>
 
       <ng-template #emptyStateTpl>
         <div class="mt-3 text-sm text-slate-400">
-          Upload an RFP to generate a report. Preview will appear here when the client receives the report JSON.
+          Upload an RFP to generate a report. Preview will appear here when the client receives the
+          report JSON.
         </div>
       </ng-template>
     </ng-container>
-
   </div>
 </div>
