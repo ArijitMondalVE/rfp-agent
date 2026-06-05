@@ -223,8 +223,17 @@ export class ChatWindow implements OnInit {
         // Emit active session
         this.activeChatChanged.emit(newSessionId);
 
-        // Reload chats list using old session so previous chats still appear
-        this.loadChats(previousSessionId);
+        // Add new chat to the list immediately so it appears in sidebar
+        this.chats = [
+          {
+            session_id: newSessionId,
+            title: 'New Chat',
+            preview: 'No messages',
+          },
+          ...this.chats,
+        ];
+
+        this.cdr.detectChanges();
       },
       error: (err: unknown) => {
         console.error(err);
