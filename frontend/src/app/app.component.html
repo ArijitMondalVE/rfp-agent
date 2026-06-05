@@ -130,6 +130,7 @@
       <div
         class="horizontal-resizer"
         (mousedown)="startVerticalResize($event)"
+        (touchstart)="startVerticalResize($event)"
         [class.resizing]="isVerticalResizing"
       ></div>
 

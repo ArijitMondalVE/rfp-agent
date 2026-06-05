@@ -50,30 +50,39 @@ export class AppComponent implements OnDestroy {
 
   private readonly MAX_REPORT_HEIGHT = 700;
 
-  // new lie
-  startVerticalResize(event: MouseEvent): void {
-    if (window.innerWidth <= 768) {
-      return;
+  startVerticalResize(event: MouseEvent | TouchEvent): void {
+    // Enable resizing for both desktop and mobile.
+    // Height remains clamped by MIN/MAX so the layout doesn't break.
+
+    if (event instanceof MouseEvent) {
+      event.preventDefault();
     }
-    
-    event.preventDefault();
+
+    const clientY = event instanceof TouchEvent ? event.touches?.[0]?.clientY : event.clientY;
+
+    if (clientY == null) return;
 
     this.isVerticalResizing = true;
-
-    this.verticalResizeStartY = event.clientY;
-
+    this.verticalResizeStartY = clientY;
     this.verticalResizeStartHeight = this.reportHeight;
-
     this.verticalDragHeight = this.reportHeight;
 
     document.body.style.cursor = 'row-resize';
     document.body.style.userSelect = 'none';
   }
 
-  private onVerticalResize = (event: MouseEvent): void => {
+  private onVerticalResize = (event: MouseEvent | TouchEvent): void => {
     if (!this.isVerticalResizing) return;
 
-    const delta = event.clientY - this.verticalResizeStartY;
+    if (event instanceof TouchEvent) {
+      event.preventDefault();
+    }
+
+    const clientY = event instanceof TouchEvent ? event.touches?.[0]?.clientY : event.clientY;
+
+    if (clientY == null) return;
+
+    const delta = clientY - this.verticalResizeStartY;
 
     const newHeight = Math.min(
       this.MAX_REPORT_HEIGHT,
@@ -93,7 +102,6 @@ export class AppComponent implements OnDestroy {
     if (!this.isVerticalResizing) return;
 
     this.isVerticalResizing = false;
-
     this.reportHeight = this.verticalDragHeight;
 
     document.body.style.cursor = '';
@@ -123,15 +131,22 @@ export class AppComponent implements OnDestroy {
     this.loadRecentDocuments();
     if (typeof window !== 'undefined') {
       window.addEventListener('mousemove', this.onVerticalResize);
-
       window.addEventListener('mouseup', this.stopVerticalResize);
+
+      window.addEventListener('touchmove', this.onVerticalResize, {
+        passive: false,
+      });
+
+      window.addEventListener('touchend', this.stopVerticalResize);
     }
   }
   ngOnDestroy(): void {
     if (typeof window !== 'undefined') {
       window.removeEventListener('mousemove', this.onVerticalResize);
-
       window.removeEventListener('mouseup', this.stopVerticalResize);
+
+      window.removeEventListener('touchmove', this.onVerticalResize);
+      window.removeEventListener('touchend', this.stopVerticalResize);
     }
   }
 

@@ -27,17 +27,21 @@ vector_store = {}
 # -----------------------------------
 # CREATE VECTOR STORE
 # -----------------------------------
-def create_vector_store(session_id: str, chunks):
+def create_vector_store(session_id: str = "global", chunks=None):
+    """Create (or replace) the Chroma vector store for a session."""
+    global vector_store
 
-    global vector_stores
+    if chunks is None:
+        raise ValueError("create_vector_store requires 'chunks'")
 
     collection_name = f"rfp_collection_{session_id}"
 
-    vector_stores[session_id] = Chroma.from_texts(
+    vector_store[session_id] = Chroma.from_texts(
         texts=chunks, embedding=embeddings, collection_name=collection_name
     )
 
-    return vector_stores[session_id]
+    return vector_store[session_id]
+
 
 
 # -----------------------------------
@@ -45,9 +49,10 @@ def create_vector_store(session_id: str, chunks):
 # -----------------------------------
 def search_vector_store(session_id: str, query: str, k: int = 5):
 
-    global vector_stores
+    global vector_store
 
-    store = vector_stores.get(session_id)
+    store = vector_store.get(session_id)
+
 
     if not store:
         return []

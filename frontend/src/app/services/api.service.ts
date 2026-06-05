@@ -12,17 +12,18 @@ export class ApiService {
 
   constructor(private http: HttpClient) {}
 
-  uploadRfp(file: File) {
+  uploadRfp(file: File, sessionId: string) {
 
     const formData = new FormData();
 
     formData.append('file', file);
 
     return this.http.post(
-      `${this.baseUrl}/upload`,
+      `${this.baseUrl}/upload?session_id=${encodeURIComponent(sessionId)}`,
       formData
     );
   }
+
 
   chatWithRfp(sessionId: string, question: string) {
 

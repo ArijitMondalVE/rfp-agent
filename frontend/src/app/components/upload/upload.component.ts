@@ -40,7 +40,10 @@ export class UploadComponent {
     this.errorMessage = null;
     this.uploadResponse = null;
 
-    this.api.uploadRfp(this.selectedFile).subscribe({
+    const sessionId = localStorage.getItem('rfp_chat_session_id_v1') || 'global';
+
+    this.api.uploadRfp(this.selectedFile, sessionId).subscribe({
+
       next: (response) => {
         this.uploadResponse = response;
         console.log(response);
