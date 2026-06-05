@@ -164,14 +164,16 @@ export class ChatWindow implements OnInit {
   // LOAD ALL CHATS
   // ===================================
 
-  loadChats(): void {
+  loadChats(requestingSessionId?: string): void {
+    const sessionToQuery = requestingSessionId ?? this.sessionId;
+
     this.loading = true;
 
     this.error = null;
 
     this.cdr.detectChanges();
 
-    this.api.getAllChats(this.sessionId).subscribe({
+    this.api.getAllChats(sessionToQuery).subscribe({
       next: (res: any) => {
         this.chats = res?.sessions || [];
 
@@ -211,6 +213,7 @@ export class ChatWindow implements OnInit {
     this.api.createNewChat().subscribe({
       next: (res: any) => {
         const newSessionId = res.session_id;
+        const previousSessionId = this.sessionId;
         this.sessionId = newSessionId;
         this.messages = [];
 
@@ -220,8 +223,8 @@ export class ChatWindow implements OnInit {
         // Emit active session
         this.activeChatChanged.emit(newSessionId);
 
-        // Reload chats list
-        this.loadChats();
+        // Reload chats list using old session so previous chats still appear
+        this.loadChats(previousSessionId);
       },
       error: (err: unknown) => {
         console.error(err);
