@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from app.api.routes.rfp import router as rfp_router
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 from app.db.database import engine
 from app.db.database import Base
 
@@ -9,6 +10,22 @@ from app.models.conversation import Conversation
 from app.models.report import Report
 
 app = FastAPI(title="RFP Intelligence Agent")
+
+# Migration: add session_id column to reports table if it doesn't exist
+with engine.connect() as conn:
+    try:
+        # Add session_id column (nullable first for migration)
+        conn.execute(text("ALTER TABLE reports ADD COLUMN session_id VARCHAR(100)"))
+        conn.commit()
+    except Exception:
+        pass  # Column already exists
+
+    try:
+        # Backfill existing rows with placeholder
+        conn.execute(text("UPDATE reports SET session_id = 'legacy' WHERE session_id IS NULL"))
+        conn.commit()
+    except Exception:
+        pass  # No rows to backfill or other error
 
 Base.metadata.create_all(bind=engine)
 

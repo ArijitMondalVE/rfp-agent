@@ -16,6 +16,8 @@ class Report(Base):
         index=True
     )
 
-    session_id = Column(String(100), nullable=False, index=True)
+    # session_id is nullable during migration, then backfilled
+    # SQLAlchemy model reflects current state after migration
+    session_id = Column(String(100), nullable=True, index=True)
 
     report_json = Column(Text)
