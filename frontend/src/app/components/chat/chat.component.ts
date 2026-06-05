@@ -57,17 +57,13 @@ export class ChatComponent {
   // -----------------------------------
   // Input: active chat session
   // -----------------------------------
-  @Input() sessionId: string = 'global';
+  @Input() sessionId!: string;
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['sessionId']) {
-      this.sessionId = this.sessionId || 'global';
+    if (changes['sessionId'] && this.sessionId) {
+      console.log('ACTIVE SESSION :', this.sessionId);
       this.loadHistoryForSession();
     }
-  }
-
-  ngOnInit(): void {
-    this.sessionId = this.getOrCreateSessionId();
   }
 
   private loadHistoryForSession(): void {
@@ -100,8 +96,6 @@ export class ChatComponent {
   // -----------------------------------
   loading = false;
 
-  private readonly SESSION_STORAGE_KEY = 'rfp_chat_session_id_v1';
-
   // Shared with ChatWindow via localStorage.
   // (sessionId is now driven by @Input())
 
@@ -126,20 +120,6 @@ export class ChatComponent {
 
     private cdr: ChangeDetectorRef,
   ) {}
-
-  private getOrCreateSessionId(): string {
-    const key = 'rfp_session_id';
-
-    let sessionId = localStorage.getItem(key);
-
-    if (!sessionId) {
-      sessionId = crypto.randomUUID();
-
-      localStorage.setItem(key, sessionId);
-    }
-
-    return sessionId;
-  }
 
   // -----------------------------------
   // ASK QUESTION

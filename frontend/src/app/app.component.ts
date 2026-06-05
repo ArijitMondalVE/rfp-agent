@@ -7,6 +7,7 @@ import {
   Inject,
   PLATFORM_ID,
   ElementRef,
+  OnInit,
 } from '@angular/core';
 import { UploadComponent } from './components/upload/upload.component';
 import { ChatComponent } from './components/chat/chat.component';
@@ -30,7 +31,7 @@ type RecentDoc = {
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class AppComponent implements OnDestroy {
+export class AppComponent implements OnDestroy ,OnInit {
   @ViewChild('reportComp') reportComp!: ReportComponent;
   @ViewChild('chatComp') chatComp!: ChatComponent;
   @ViewChild('reportPanel')
@@ -69,6 +70,20 @@ export class AppComponent implements OnDestroy {
 
     document.body.style.cursor = 'row-resize';
     document.body.style.userSelect = 'none';
+  }
+
+  //Session
+  private getOrCreateSessionId(): string {
+    const key = 'rfp_session_id';
+
+    let sessionId = localStorage.getItem(key);
+
+    if (!sessionId) {
+      sessionId = crypto.randomUUID();
+      localStorage.setItem(key, sessionId);
+    }
+
+    return sessionId;
   }
 
   private onVerticalResize = (event: MouseEvent | TouchEvent): void => {
@@ -128,6 +143,10 @@ export class AppComponent implements OnDestroy {
     private api: ApiService,
     @Inject(PLATFORM_ID) private platformId: Object,
   ) {
+    this.activeSessionId = this.getOrCreateSessionId();
+
+    console.log('APP SESSION:', this.activeSessionId);
+
     this.loadRecentDocuments();
     if (typeof window !== 'undefined') {
       window.addEventListener('mousemove', this.onVerticalResize);
@@ -140,6 +159,13 @@ export class AppComponent implements OnDestroy {
       window.addEventListener('touchend', this.stopVerticalResize);
     }
   }
+
+  ngOnInit(): void {
+    this.activeSessionId = this.getOrCreateSessionId();
+
+    console.log('APP SESSION:', this.activeSessionId);
+  }
+
   ngOnDestroy(): void {
     if (typeof window !== 'undefined') {
       window.removeEventListener('mousemove', this.onVerticalResize);
