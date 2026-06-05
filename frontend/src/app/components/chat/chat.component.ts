@@ -175,7 +175,9 @@ export class ChatComponent {
       // Call Streaming API
       // -----------------------------------
       console.log('STREAM SESSION:', this.sessionId);
-      const currentSessionId = this.sessionId || localStorage.getItem('rfp_session_id') || '';
+      const currentSessionId = this.sessionId?.trim()
+        ? this.sessionId
+        : localStorage.getItem('rfp_session_id') || '';
 
       if (!currentSessionId) {
         aiMessage.content = 'No active session found.';
