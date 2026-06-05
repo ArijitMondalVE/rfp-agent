@@ -16,6 +16,7 @@ Base.metadata.create_all(bind=engine)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "https://rfp-agent-b8c2q1dl1-arijit-s-projects3.vercel.app",
         "https://rfp-agent-j7kfj6sk5-arijit-s-projects3.vercel.app",
         "https://rfp-agent.vercel.app",
     ],
