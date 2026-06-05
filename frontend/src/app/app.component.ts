@@ -266,7 +266,7 @@ export class AppComponent implements OnDestroy ,OnInit {
 
   onAllChatsCleared() {
     this.chatResetTrigger++;
-    this.activeSessionId = '';
+    this.activeSessionId = this.getOrCreateSessionId();
     if (this.chatComp) {
       this.chatComp.resetToEmptyState();
     }

@@ -57,7 +57,7 @@ export class ChatComponent {
   // -----------------------------------
   // Input: active chat session
   // -----------------------------------
-  @Input() sessionId!: string;
+  @Input() sessionId: string = '';
 
   ngOnChanges(changes: SimpleChanges): void {
     console.log('SESSION RECEIVED:', this.sessionId);
@@ -175,11 +175,14 @@ export class ChatComponent {
       // Call Streaming API
       // -----------------------------------
       console.log('STREAM SESSION:', this.sessionId);
-      const response = await this.api.streamChat(
-        this.sessionId,
-        currentQuestion,
-       
-      );
+      const currentSessionId = this.sessionId || localStorage.getItem('rfp_session_id') || '';
+
+      if (!currentSessionId) {
+        aiMessage.content = 'No active session found.';
+        return;
+      }
+
+      const response = await this.api.streamChat(currentSessionId, currentQuestion);
 
       // -----------------------------------
       // Validate Response

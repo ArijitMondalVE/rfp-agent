@@ -51,13 +51,13 @@ export class ChatWindow implements OnInit {
   // ===================================
 
 
-  SESSION_STORAGE_KEY = 'rfp_chat_session_id_v1';
+  SESSION_STORAGE_KEY = 'rfp_session_id';
 
   // ===================================
   // ACTIVE SESSION
   // ===================================
 
-  sessionId = 'global';
+  sessionId = '';
 
   // ===================================
   // CHAT LIST
@@ -284,7 +284,7 @@ export class ChatWindow implements OnInit {
     this.api.clearAllChats().subscribe({
       next: () => {
         this.chats = [];
-        this.sessionId = 'global';
+        this.sessionId = '';
         this.messages = [];
         this.safeStorageRemove('rfp_chat_session_id_v1');
         this.activeChatChanged.emit(this.sessionId);
