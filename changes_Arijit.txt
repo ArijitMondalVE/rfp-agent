@@ -1,0 +1,19 @@
+What I Would Build First
+Week 1
+
+✅ Page citations
+
+✅ Grounded responses
+
+✅ "Not specified in RFP"
+
+Week 2
+
+✅ Structured extraction JSON
+
+✅ Compliance matrix
+
+...............................>>>>>>>>>>
+
+Today's Implementation Plan
+1. Grounded Responses Only

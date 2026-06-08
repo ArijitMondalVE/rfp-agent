@@ -52,8 +52,8 @@ def create_vector_store(session_id: str, chunks=None):
         embedding_function=get_embeddings(),
     )
 
-    # Add document chunks
-    store.add_texts(texts=chunks)
+  # Add document chunks with metadata
+    store.add_documents(chunks)
 
     return store
 

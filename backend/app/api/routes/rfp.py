@@ -11,7 +11,10 @@ from fastapi.responses import FileResponse
 from app.db.database import SessionLocal
 from app.models.chat_message import ChatMessage
 
-from app.services.pdf_parser import extract_text_from_pdf
+from app.services.pdf_parser import (
+    extract_text_from_pdf,
+    extract_documents_from_pdf,
+)
 from app.services.ocr_service import extract_text_with_ocr
 from app.services.chunker import chunk_document
 from app.services.async_processor import process_chunks_async
@@ -57,13 +60,25 @@ async def upload_rfp(session_id: str, file: UploadFile = File(...)):
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    # Extract PDF text
+   # Extract PDF text
     text = extract_text_from_pdf(str(file_path))
 
     # OCR fallback
     if len(text.strip()) < 500:
         print("Low text detected. Running OCR...")
         text = extract_text_with_ocr(str(file_path))
+
+    # Extract page-aware documents
+    documents = extract_documents_from_pdf(
+        str(file_path)
+    )
+
+    # Chunk document
+    chunks = chunk_document(
+    documents
+    )
+    print("SESSION:", session_id)
+    print("CHUNKS CREATED:", len(chunks))
 
     # Generate executive summary
     document_summary = generate_document_summary(text)
@@ -73,10 +88,7 @@ async def upload_rfp(session_id: str, file: UploadFile = File(...)):
     save_context(session_id=session_id, context_type="document_name", content=file.filename)
     save_context(session_id=session_id, context_type="upload_time", content=str(datetime.now()))
 
-    # Chunk document
-    chunks = chunk_document(text)
-    print("SESSION:", session_id)
-    print("CHUNKS CREATED:", len(chunks))
+    
 
     # Store embeddings
     create_vector_store(session_id=session_id, chunks=chunks)
@@ -204,7 +216,18 @@ async def get_report(session_id: str):
 async def search_rfp(session_id: str, query: str):
     # NOTE: existing search_vector_store uses global session store.
     results = search_vector_store(session_id=session_id, query=query)
-    return {"query": query, "results": [doc.page_content for doc in results]}
+    return {
+    "query": query,
+    "results": [
+        {
+            "page": doc.metadata.get(
+                "page"
+            ),
+            "content": doc.page_content
+        }
+        for doc in results
+    ]
+}
 
 
 # -----------------------------------

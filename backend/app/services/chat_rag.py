@@ -112,12 +112,32 @@ def retrieve_context(session_id: str, question: str):
 
     summary_query = is_summary_query(question)
 
+    #temporary print for debugging
+    for doc in docs:
+        print("DOC METADATA:", doc.metadata)
+
     # Better retrieval for summaries
     search_query = "full document summary" if summary_query else question
 
     docs = search_vector_store(session_id, search_query, k=5 if summary_query else 3)
+    if not docs:
+        return "", summary_query
 
-    context = "\n\n".join([doc.page_content[:500] for doc in docs])
+    context_parts = []
+
+    for doc in docs:
+
+        page = doc.metadata.get("page", "Unknown")
+
+        context_parts.append(f"""
+        ========================
+        SOURCE PAGE: {page}
+        ========================
+
+        {doc.page_content[:1000]}
+        """)
+
+    context = "\n\n".join(context_parts)
 
     return context, summary_query
 
@@ -139,17 +159,11 @@ def retrieve_history(session_id: str):
 # ===================================
 
 
-def retrieve_memory(session_id: str
-):
+def retrieve_memory(session_id: str):
 
     stored_context = get_context(session_id)
 
-    return "\n\n".join(
-    [
-        memory.content[:400]
-        for memory in stored_context[:2]
-    ]
-)
+    return "\n\n".join([memory.content[:400] for memory in stored_context[:2]])
 
 
 # ===================================
@@ -172,13 +186,53 @@ You are an intelligent AI document assistant.
 
 Use the provided document context as the PRIMARY source of truth.
 
-You may infer reasonable conclusions from the context when appropriate.
+You MUST ONLY use information explicitly present in the retrieved document context.
+
+If the information is not found in the document, respond exactly:
+
+"Not specified in the RFP"
+
+Do not infer or guess:
+- Dates
+- Agencies
+- Locations
+- Budgets
+- Deadlines
+- Requirements
+- Contract terms
+- Evaluation criteria
+
+Never fabricate information.
 
 Do NOT fabricate unsupported facts.
 
 Avoid overly defensive responses.
 
 Answer naturally, clearly, and professionally.
+
+IMPORTANT:
+
+For every extracted fact:
+
+1. State the fact.
+2. Add "Source: Page X"
+
+Example:
+
+Agency:
+City of Doral
+
+Source: Page 2
+
+Submission Deadline:
+June 15, 2026
+
+Source: Page 18
+
+If a page number is unavailable:
+Not specified in the RFP
+
+Do not answer without a source page.
 
 {format_instruction}
 
@@ -222,7 +276,6 @@ def chat_with_rfp(session_id: str, question: str):
         save_chat_message(session_id, "assistant", answer)
 
         return {"session_id": session_id, "question": question, "answer": answer}
-
 
     # Retrieve history
     history_text = retrieve_history(session_id)
