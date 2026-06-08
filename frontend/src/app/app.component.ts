@@ -16,6 +16,10 @@ import { ReportComponent } from './components/report/report.component';
 import { CommonModule } from '@angular/common';
 import { ApiService } from './services/api.service';
 import { OnDestroy } from '@angular/core';
+import { PdfDeleteModalComponent } from './components/pdf-delete-modal/pdf-delete-modal.component';
+import { ConfirmDeleteModalComponent } from './components/confirm-delete-modal/confirm-delete-modal.component';
+
+
 
 type RecentDoc = {
   filename: string;
@@ -25,13 +29,35 @@ type RecentDoc = {
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [UploadComponent, ReportComponent, ChatComponent, ChatWindow, CommonModule],
+  imports: [
+    UploadComponent,
+    ReportComponent,
+    ChatComponent,
+    ChatWindow,
+    CommonModule,
+    // PDF delete confirmation modal
+    PdfDeleteModalComponent,
+    // Reusable confirm modal
+    ConfirmDeleteModalComponent,
+  ],
+
+
+
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css'],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AppComponent implements OnDestroy, OnInit {
+  // PDF delete confirmation modal state (must match chat history modal style)
+  showPdfDeleteConfirm = false;
+  pdfToDelete: string | null = null;
+
+  // Generic confirm modal state
+  showConfirmDeleteConfirm = false;
+  confirmDeleteTargetLabel: string | null = null;
+
+
   @ViewChild('reportComp') reportComp!: ReportComponent;
   @ViewChild('chatComp') chatComp!: ChatComponent;
   @ViewChild('chatWindow') chatWindow!: ChatWindow;
@@ -263,6 +289,100 @@ export class AppComponent implements OnDestroy, OnInit {
       this.reportComp.setReportFromUploadResponse(result);
     }
   }
+
+  deleteRecentDocument(filename: string, event: Event) {
+    event.stopPropagation();
+
+    if (!filename) return;
+
+    // Keep PDF delete confirmation consistent with chat history (custom modal)
+    this.pdfToDelete = filename;
+    this.showPdfDeleteConfirm = true;
+    this.cdr.detectChanges();
+    // Actual delete happens in confirmPdfDelete()
+    return;
+  }
+
+  openConfirmDeleteModal(targetLabel: string): void {
+    this.confirmDeleteTargetLabel = targetLabel;
+    this.showConfirmDeleteConfirm = true;
+    this.cdr.detectChanges();
+  }
+
+
+
+
+  confirmPdfDelete() {
+    if (!this.pdfToDelete) return;
+
+    const filename = this.pdfToDelete;
+
+    // optimistic UI update
+    this.recentDocuments = this.recentDocuments.filter((d) => d.filename !== filename);
+    this.persistRecentDocuments();
+
+    this.api.deleteUploadedDocument(filename).subscribe({
+      next: () => {
+        this.cdr.detectChanges();
+      },
+      error: (err: unknown) => {
+        console.error(err);
+        // revert local change by reloading from backend cache
+        this.loadRecentDocuments();
+        this.cdr.detectChanges();
+      },
+    });
+
+    this.closePdfDeleteModal();
+  }
+
+  closePdfDeleteModal() {
+    this.showPdfDeleteConfirm = false;
+    this.pdfToDelete = null;
+    this.cdr.detectChanges();
+  }
+
+  confirmClearPdfHistory(): void {
+    this.clearRecentDocumentsInner();
+    this.closeConfirmDeleteModal();
+  }
+
+  private clearRecentDocumentsInner(): void {
+    // optimistic
+    this.recentDocuments = [];
+    this.persistRecentDocuments();
+    this.cdr.detectChanges();
+
+    this.api.clearUploadedDocuments().subscribe({
+      next: () => {
+        this.cdr.detectChanges();
+      },
+      error: (err: unknown) => {
+        console.error(err);
+        this.loadRecentDocuments();
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  closeConfirmDeleteModal(): void {
+
+    this.showConfirmDeleteConfirm = false;
+    this.confirmDeleteTargetLabel = null;
+    this.cdr.detectChanges();
+  }
+
+  clearRecentDocuments(event: Event) {
+    event.stopPropagation();
+    if (this.recentDocuments.length === 0) return;
+
+    // Use modern confirm modal (instead of window.confirm) 
+    this.confirmDeleteTargetLabel = null;
+    this.showConfirmDeleteConfirm = true;
+    this.cdr.detectChanges();
+  }
+
+
 
   formatUploadedAt(ts: number): string {
     if (!ts) return 'Uploaded recently';

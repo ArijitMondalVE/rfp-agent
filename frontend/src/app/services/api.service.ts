@@ -105,6 +105,15 @@ export class ApiService {
     return this.http.get(`${this.baseUrl}/documents`);
   }
 
+  deleteUploadedDocument(filename: string) {
+    return this.http.delete(`${this.baseUrl}/documents/${encodeURIComponent(filename)}`);
+  }
+
+  clearUploadedDocuments() {
+    return this.http.delete(`${this.baseUrl}/documents`);
+  }
+
+
   exportDocx(sessionId: string) {
     return this.http.get(`${this.baseUrl}/export-docx`, {
       params: { session_id: sessionId },

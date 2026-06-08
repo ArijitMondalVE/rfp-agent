@@ -137,8 +137,56 @@ async def upload_rfp(session_id: str, file: UploadFile = File(...)):
 # -----------------------------------
 @router.get("/documents")
 async def get_documents():
-    # return recent documents list
-    return {"documents": []}
+    """Return recent uploaded PDF filenames stored in local ./uploads.
+
+    Note: This is not yet fully user-scoped; it reflects files available on this server.
+    """
+    uploads = Path("uploads")
+    if not uploads.exists():
+        return {"documents": []}
+
+    documents = []
+    for p in uploads.iterdir():
+        if p.is_file() and p.suffix.lower() == ".pdf":
+            stat = p.stat()
+            documents.append(
+                {
+                    "filename": p.name,
+                    # Use mtime as the “uploaded” timestamp proxy.
+                    "uploadedAt": int(stat.st_mtime * 1000),
+                }
+            )
+
+    documents.sort(key=lambda d: d.get("uploadedAt", 0), reverse=True)
+    return {"documents": documents[:10]}
+
+
+@router.delete("/documents")
+async def clear_documents():
+    uploads = Path("uploads")
+    if uploads.exists():
+        for p in uploads.iterdir():
+            if p.is_file() and p.suffix.lower() == ".pdf":
+                p.unlink(missing_ok=True)
+
+    # Also wipe any in-memory report state is not handled here; report is per-session.
+    return {"message": "PDF history cleared"}
+
+
+@router.delete("/documents/{filename}")
+async def delete_document(filename: str):
+    uploads = Path("uploads")
+    target = uploads / filename
+
+    if not target.exists() or not target.is_file():
+        return {"error": "File not found"}, 404
+
+    if target.suffix.lower() != ".pdf":
+        return {"error": "Only PDF files can be deleted"}, 400
+
+    target.unlink(missing_ok=True)
+    return {"message": "PDF deleted"}
+
 
 
 @router.get("/report")

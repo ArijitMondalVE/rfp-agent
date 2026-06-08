@@ -32,17 +32,24 @@ Base.metadata.create_all(bind=engine)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"https://.*\.vercel\.app",
+    # Allow deployed frontends + local dev
+    allow_origin_regex=r"https://.*\.vercel\.app|http://localhost:\\d+|http://127\\.0\\.0\\.1:\\d+",
     allow_origins=[
         "https://rfp-agent-b8c2q1dl1-arijit-s-projects3.vercel.app",
         "https://rfp-agent-j7kfj6sk5-arijit-s-projects3.vercel.app",
         "https://rfp-agent.vercel.app",
         "https://rfp-agent-delta.vercel.app",
+        # Local dev (Angular CLI typically runs on 4200)
+        "http://localhost:3000",
+        "http://localhost:4200",
+        "http://127.0.0.1:8000",
+        "http://127.0.0.1:4200",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 
 app.include_router(rfp_router)

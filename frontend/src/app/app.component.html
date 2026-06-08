@@ -38,6 +38,7 @@
           />
         </svg>
       </button>
+      
       <div>
         <h1 class="text-2xl font-semibold tracking-tight">RFP Intelligence Agent</h1>
         <p class="mt-1 text-sm text-slate-300">
@@ -75,10 +76,42 @@
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-sm font-semibold text-slate-200">Recent Documents</h2>
 
-            <span class="text-xs px-2 py-1 rounded-full bg-sky-500/20 text-sky-300"> PDFs </span>
+            <div class="flex items-center gap-2">
+              <span class="text-xs px-2 py-1 rounded-full bg-sky-500/20 text-sky-300"> PDFs </span>
+
+              <button
+                class="pdf-history-clear-btn"
+                title="Clear PDF history"
+                aria-label="Clear PDF history"
+                (click)="clearRecentDocuments($event)"
+                *ngIf="recentDocuments.length > 0"
+              >
+                Clear
+              </button>
+
+              <app-confirm-delete-modal
+                *ngIf="showConfirmDeleteConfirm"
+                [title]="'Clear PDF history?'"
+                [targetLabel]="confirmDeleteTargetLabel"
+                [description]="''"
+                [confirmText]="'Clear'"
+                [variant]="'danger'"
+                (confirm)="confirmClearPdfHistory()"
+                (close)="closeConfirmDeleteModal()"
+              ></app-confirm-delete-modal>
+            </div>
           </div>
 
+          <!-- PDF Delete Confirmation Modal (same pattern as chat history delete) -->
+          <app-pdf-delete-modal
+            *ngIf="showPdfDeleteConfirm"
+            [filename]="pdfToDelete || ''"
+            (confirm)="confirmPdfDelete()"
+            (close)="closePdfDeleteModal()"
+          ></app-pdf-delete-modal>
+
           <div class="space-y-2">
+
             <div
               *ngIf="recentDocuments.length === 0"
               class="rounded-xl border border-white/10 bg-slate-800/30 p-3"
@@ -90,9 +123,18 @@
 
             <div
               *ngFor="let doc of recentDocuments"
-              class="rounded-xl border border-white/10 bg-slate-800/50 p-3 hover:bg-slate-800 transition cursor-pointer"
+              class="group rounded-xl border border-white/10 bg-slate-800/50 p-3 hover:bg-slate-800 transition cursor-pointer relative"
             >
-              <div class="font-medium text-xs text-slate-100 truncate">
+              <button
+                class="pdf-history-delete-btn"
+                title="Delete PDF from history"
+                aria-label="Delete PDF from history"
+                (click)="deleteRecentDocument(doc.filename, $event)"
+              >
+                ×
+              </button>
+
+              <div class="font-medium text-xs text-slate-100 truncate pr-5">
                 {{ doc.filename }}
               </div>
 
@@ -100,6 +142,7 @@
                 {{ formatUploadedAt(doc.uploadedAt) }}
               </div>
             </div>
+
           </div>
         </div>
 
