@@ -1,11 +1,10 @@
 import json
 import re
 
-from groq import Groq
 
-from app.core.config import GROQ_API_KEY
-
-client = Groq(api_key=GROQ_API_KEY)
+from app.services.llm_provider import client
+from app.core.config import get_active_model
+from app.services.llm_utils import generate_response
 
 
 def clean_json_string(raw: str) -> str:
@@ -17,7 +16,7 @@ def clean_json_string(raw: str) -> str:
     # Remove any text before first { or [
     first_bracket = min(
         raw.find("{") if "{" in raw else len(raw),
-        raw.find("[") if "[" in raw else len(raw)
+        raw.find("[") if "[" in raw else len(raw),
     )
     if first_bracket > 0:
         raw = raw[first_bracket:]
@@ -72,17 +71,15 @@ Rules:
 DOCUMENT TEXT:
 {chunk}
 """
-
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ],
-        temperature=0.1
-    )
+    response = generate_response(
+    messages=[
+        {
+            "role": "user",
+            "content": prompt
+        }
+    ]
+)
+    
 
     raw_content = response.choices[0].message.content
 
@@ -103,5 +100,5 @@ DOCUMENT TEXT:
     return {
         "scope": scope_items,
         "deliverables": deliverables,
-        "objectives": objectives
+        "objectives": objectives,
     }

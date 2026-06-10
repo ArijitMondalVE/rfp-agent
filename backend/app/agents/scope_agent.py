@@ -1,12 +1,6 @@
 import json
 
-from groq import Groq
-
-from app.core.config import GROQ_API_KEY
-
-client = Groq(
-    api_key=GROQ_API_KEY
-)
+from app.services.llm_utils import generate_response
 
 
 def extract_scope(doc):
@@ -55,9 +49,7 @@ TEXT:
 
     try:
 
-        response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            temperature=0,
+        response = generate_response(
             messages=[
                 {
                     "role": "user",

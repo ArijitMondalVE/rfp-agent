@@ -1,20 +1,22 @@
-from groq import Groq
-
 from fastapi.responses import StreamingResponse
-
-from app.core.config import GROQ_API_KEY
 
 from app.services.vector_store import search_vector_store
 
 from app.services.chat_memory import save_chat_message, get_chat_history
 
 from app.services.context_memory import get_context
+from app.services.llm_provider import client
+from app.services.llm_utils import generate_response
 
 # ===================================
 # GROQ CLIENT
 # ===================================
 
-client = Groq(api_key=GROQ_API_KEY, timeout=120)
+# client = Groq(api_key=GROQ_API_KEY, timeout=120)
+
+# client = OpenAI(
+#     api_key=OPENAI_API_KEY
+# )
 
 
 # ===================================
@@ -117,13 +119,12 @@ def retrieve_context(session_id: str, question: str):
 
     docs = search_vector_store(session_id, search_query, k=5 if summary_query else 3)
 
-    #temporary print for debugging (safe even if docs is empty)
+    # temporary print for debugging (safe even if docs is empty)
     for doc in docs:
         print("DOC METADATA:", doc.metadata)
 
     if not docs:
         return "", summary_query
-
 
     context_parts = []
 
@@ -291,11 +292,7 @@ def chat_with_rfp(session_id: str, question: str):
     )
 
     # Generate response
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        temperature=0.2,
-        messages=[{"role": "user", "content": prompt}],
-    )
+    response = generate_response(messages=[{"role": "user", "content": prompt}])
 
     answer = response.choices[0].message.content
 
@@ -347,11 +344,8 @@ async def stream_chat_with_rfp(session_id: str, question: str):
     )
 
     # Start stream
-    stream = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        temperature=0.2,
-        stream=True,
-        messages=[{"role": "user", "content": prompt}],
+    stream = generate_response(
+        messages=[{"role": "user", "content": prompt}], stream=True
     )
 
     # Streaming generator
@@ -445,10 +439,5 @@ DOCUMENT:
 {shortened_text}
 """
 
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        temperature=0.2,
-        messages=[{"role": "user", "content": prompt}],
-    )
-
+    response = generate_response(messages=[{"role": "user", "content": prompt}])
     return response.choices[0].message.content

@@ -1,7 +1,6 @@
-from groq import Groq
-from app.core.config import GROQ_API_KEY
+import json
 
-client = Groq(api_key=GROQ_API_KEY)
+from app.services.llm_utils import generate_response
 
 
 def classify_solicitation(text: str):
@@ -32,10 +31,28 @@ DOCUMENT:
 {text[:12000]}
 """
 
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        temperature=0,
-        messages=[{"role":"user","content":prompt}]
-    )
+    try:
 
-    return response.choices[0].message.content
+        response = generate_response(
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            response_format={"type": "json_object"}
+        )
+
+        return json.loads(
+            response.choices[0].message.content
+        )
+
+    except Exception as e:
+
+        print(f"Solicitation Classifier Error: {e}")
+
+        return {
+            "solicitation_type": "Unknown",
+            "confidence": 0,
+            "reason": "Classification failed"
+        }

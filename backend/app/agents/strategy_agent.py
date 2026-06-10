@@ -1,8 +1,6 @@
-from groq import Groq
-from app.core.config import GROQ_API_KEY
 import json
 
-client = Groq(api_key=GROQ_API_KEY)
+from app.services.llm_utils import generate_response
 
 
 def generate_strategy(text):
@@ -31,16 +29,14 @@ DOCUMENT:
 {text[:12000]}
 """
 
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        temperature=0,
-        response_format={"type": "json_object"},
+    response = generate_response(
         messages=[
             {
-                "role":"user",
-                "content":prompt
+                "role": "user",
+                "content": prompt
             }
-        ]
+        ],
+        response_format={"type": "json_object"}
     )
 
     return json.loads(

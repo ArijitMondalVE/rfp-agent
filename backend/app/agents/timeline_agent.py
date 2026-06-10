@@ -1,32 +1,44 @@
-from openai import OpenAI
-from app.core.config import OPENAI_API_KEY
+import json
 
-client = OpenAI(api_key=OPENAI_API_KEY)
+from app.services.llm_utils import generate_response
 
 
 def extract_deadlines(chunk: str):
 
     prompt = f"""
-    Extract all:
-    - submission deadlines
-    - project start dates
-    - milestone dates
-    - contract duration
+Extract all:
 
-    Return structured JSON.
+- submission deadlines
+- project start dates
+- milestone dates
+- contract duration
 
-    TEXT:
-    {chunk}
-    """
+Return JSON only.
 
-    response = client.chat.completions.create(
-        model="gpt-5.5",
+Example:
+
+{{
+    "submission_deadline": "",
+    "project_start_date": "",
+    "milestones": [],
+    "contract_duration": ""
+}}
+
+TEXT:
+
+{chunk}
+"""
+
+    response = generate_response(
         messages=[
             {
                 "role": "user",
                 "content": prompt
             }
-        ]
+        ],
+        response_format={"type": "json_object"}
     )
 
-    return response.choices[0].message.content
+    return json.loads(
+        response.choices[0].message.content
+    )

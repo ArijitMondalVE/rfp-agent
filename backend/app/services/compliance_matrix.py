@@ -1,9 +1,6 @@
 import json
-from groq import Groq
 
-from app.core.config import GROQ_API_KEY
-
-client = Groq(api_key=GROQ_API_KEY)
+from app.services.llm_utils import generate_response
 
 
 def generate_compliance_matrix(text: str):
@@ -52,23 +49,6 @@ Categories may include:
 - Legal
 - Financial
 
-Examples:
-
-[
-  {{
-    "requirement": "W-9 Form",
-    "category": "Forms",
-    "status": "Required",
-    "page": 18
-  }},
-  {{
-    "requirement": "General Liability Insurance $1,000,000",
-    "category": "Insurance",
-    "status": "Required",
-    "page": 13
-  }}
-]
-
 Only include requirements explicitly stated in the document.
 
 DOCUMENT:
@@ -76,28 +56,37 @@ DOCUMENT:
 {shortened_text}
 """
 
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        temperature=0,
-        messages=[
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ]
-    )
-
-    content = response.choices[0].message.content.strip()
-
     try:
+
+        response = generate_response(
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ]
+        )
+
+        content = response.choices[0].message.content.strip()
+
+        # Remove markdown if model adds it
+        content = content.replace("```json", "")
+        content = content.replace("```", "").strip()
+
         data = json.loads(content)
 
         if isinstance(data, list):
             return data
 
+        # Support object format too
+        if isinstance(data, dict):
+            return data.get("items", [])
+
         return []
 
-    except Exception:
+    except Exception as e:
+
+        print(f"Compliance Matrix Error: {e}")
 
         return [
             {

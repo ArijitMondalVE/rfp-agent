@@ -1,9 +1,6 @@
 import json
-from groq import Groq
 
-from app.core.config import GROQ_API_KEY
-
-client = Groq(api_key=GROQ_API_KEY)
+from app.services.llm_utils import generate_response
 
 
 def extract_rfp_metadata(text: str):
@@ -99,24 +96,27 @@ DOCUMENT:
 {shortened_text}
 """
 
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        temperature=0,
-        messages=[
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ]
-    )
-
-    content = response.choices[0].message.content.strip()
-
     try:
+
+        response = generate_response(
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            response_format={"type": "json_object"}
+        )
+
+        content = response.choices[0].message.content.strip()
+
         return json.loads(content)
 
-    except Exception:
+    except Exception as e:
+
+        print(f"RFP Extractor Error: {e}")
+
         return {
             "error": "Failed to parse JSON",
-            "raw_response": content
+            "details": str(e)
         }

@@ -1,34 +1,62 @@
-from openai import OpenAI
-from app.core.config import OPENAI_API_KEY
+import json
 
-client = OpenAI(api_key=OPENAI_API_KEY)
+from backend.app.services.llm_utils import generate_response
+
 
 def extract_rfp_details(chunk: str):
 
     prompt = f"""
-    You are an RFP analysis expert.
+You are an RFP analysis expert.
 
-    Extract:
-    - Scope of work
-    - Deadlines
-    - Staffing requirements
-    - Pricing details
-    - Compliance clauses
+Extract:
 
-    Return JSON only.
+- Scope of work
+- Deadlines
+- Staffing requirements
+- Pricing details
+- Compliance clauses
 
-    TEXT:
-    {chunk}
-    """
+Return JSON only.
 
-    response = client.chat.completions.create(
-        model="gpt-5.5",
-        messages=[
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ]
-    )
+Example:
 
-    return response.choices[0].message.content
+{{
+  "scope_of_work": [],
+  "deadlines": [],
+  "staffing_requirements": [],
+  "pricing_details": [],
+  "compliance_clauses": []
+}}
+
+TEXT:
+
+{chunk}
+"""
+
+    try:
+
+        response = generate_response(
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            response_format={"type": "json_object"}
+        )
+
+        return json.loads(
+            response.choices[0].message.content
+        )
+
+    except Exception as e:
+
+        print(f"RFP Detail Extractor Error: {e}")
+
+        return {
+            "scope_of_work": [],
+            "deadlines": [],
+            "staffing_requirements": [],
+            "pricing_details": [],
+            "compliance_clauses": []
+        }
