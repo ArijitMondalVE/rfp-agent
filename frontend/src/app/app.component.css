@@ -50,7 +50,7 @@
   min-height: 0;
 
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
 
   overflow: hidden;
 }
@@ -59,17 +59,7 @@
    REPORT PANEL
 ========================= */
 
-.report-panel {
-  flex-shrink: 0;
-  min-height: 120px;
-  max-height: 700px;
-  overflow: auto;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
 
-.report-panel > div {
-  height: 100%;
-}
 
 app-report {
   display: block;
@@ -77,28 +67,38 @@ app-report {
 }
 
 /* =========================
-   REPORT ↕ CHAT RESIZER
+   CHAT AREA
 ========================= */
 
-.horizontal-resizer {
-  height: 6px;
+.chat-area {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  overflow: hidden;
+}
+
+/* =========================
+   REPORT SIDEBAR
+========================= */
+
+.report-sidebar {
+  width: 420px;
+  min-width: 380px;
+  max-width: 500px;
+
   flex-shrink: 0;
 
-  cursor: row-resize;
+  overflow-y: auto;
 
-  background: rgba(255, 255, 255, 0.05);
-
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
+  background: rgba(15, 23, 42, 0.4);
 }
 
-.horizontal-resizer:hover {
-  background: rgba(14, 165, 233, 0.25);
-}
-
-.horizontal-resizer.resizing {
-  background: rgba(14, 165, 233, 0.5);
+.report-sidebar app-report {
+  display: block;
 }
 
 /* =========================
@@ -125,7 +125,7 @@ app-report {
   flex-direction: column;
 }
 
-.chat-section-inner-wrapper > div {
+.chat-section-inner-wrapper>div {
   flex: 1;
   min-height: 0;
 
@@ -160,38 +160,72 @@ app-chat {
 ========================= */
 
 @media (max-width: 768px) {
-  .sidebar {
+
+  .main-content {
+    flex-direction: column !important;
+  }
+
+  .chat-area {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .chat-section-inner-wrapper {
+    padding: 0.75rem !important;
+  }
+
+  .report-sidebar {
     position: fixed;
 
-    left: 0;
     top: 0;
+    right: 0;
     bottom: 0;
 
-    width: 280px;
+    width: 90vw;
+    max-width: 420px;
 
-    z-index: 40;
+    z-index: 60;
 
     background: rgb(15 23 42);
 
-    transform: translateX(-100%);
+    transform: translateX(100%);
     transition: transform 0.3s ease;
+
+    border-left: 1px solid rgba(255, 255, 255, .08);
   }
 
-  .sidebar.sidebar-open {
+  .report-sidebar.mobile-open {
     transform: translateX(0);
   }
 
-  .report-panel {
-    min-height: 140px;
+  /* Prevent desktop collapse rule from hiding report on mobile */
+  .report-sidebar.collapsed {
+    width: 90vw !important;
+    min-width: 0 !important;
+    max-width: 420px !important;
   }
 
-  .horizontal-resizer {
-    display: block;
-    height: 16px; /* Bigger touch area */
+  .report-resizer {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .chat-section-inner-wrapper {
+    padding: 0.5rem !important;
   }
 
   .chat-wrapper {
-    flex: 1;
+    padding: 0;
+  }
+
+  .chat-section-inner-wrapper>div {
+    max-width: 100% !important;
+    padding: 0;
   }
 }
 
@@ -200,9 +234,6 @@ app-chat {
 ========================= */
 
 @media (max-width: 640px) {
-  .report-panel {
-    padding: 1rem !important;
-  }
 
   .chat-section-inner-wrapper {
     padding: 1rem !important;
@@ -254,3 +285,240 @@ app-chat {
   background: rgba(255, 255, 255, 0.10);
 }
 
+/* =========================
+   UPLOAD SECTION ANIMATION
+========================= */
+
+.sidebar-upload-section {
+  padding: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.3s ease;
+}
+
+.sidebar-upload-section.section-collapsed {
+  padding: 0.75rem 1rem;
+}
+
+.upload-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+  padding: 0.25rem 0;
+  margin-bottom: 0.5rem;
+  border-radius: 8px;
+  transition: background 0.2s ease;
+}
+
+.upload-section-header:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.upload-section-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--tw-colors-slate-100);
+}
+
+.sandwich-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(226, 232, 240, 0.9);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sandwich-toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.sandwich-icon {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.3s ease;
+}
+
+.sandwich-icon.rotated {
+  transform: rotate(-90deg);
+}
+
+.upload-section-content {
+  overflow: hidden;
+  max-height: 500px;
+  opacity: 1;
+  /* “in/out” animation like the report panel motion */
+  transform: translateY(0);
+  transition:
+    max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    padding-top 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.upload-section-content.content-collapsed {
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-6px);
+  padding-top: 0;
+}
+
+/* =========================
+   MOBILE SIDEBAR FLEXIBILITY
+========================= */
+
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 40;
+    width: 85vw;
+    max-width: 320px;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .sidebar.sidebar-open {
+    transform: translateX(0);
+  }
+
+  .sidebar.w-0 {
+    width: 0;
+    max-width: 0;
+  }
+
+  .sidebar-upload-section {
+    padding: 0.75rem;
+  }
+
+  .sidebar-docs-section {
+    padding: 0.75rem;
+  }
+
+  .sidebar-chat-section {
+    padding: 0.75rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .sidebar {
+    width: 90vw;
+    max-width: 300px;
+  }
+
+  .sidebar-upload-section {
+    padding: 0.5rem;
+  }
+
+  .sidebar-docs-section {
+    padding: 0.5rem;
+  }
+
+  .sidebar-chat-section {
+    padding: 0.5rem;
+  }
+
+  .report-sidebar {
+    width: 95vw;
+    max-width: 95vw;
+  }
+}
+
+/* =========================
+   REPORT SIDEBAR
+========================= */
+
+.report-sidebar {
+  will-change: width;
+  width: 420px;
+  min-width: 0;
+  flex-shrink: 0;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  overflow: hidden;
+}
+
+.report-sidebar.animate {
+  transition: width .25s ease;
+}
+
+.report-sidebar.collapsed {
+  width: 0 !important;
+  border-left: none;
+}
+
+.report-resizer {
+  width: 6px;
+
+  cursor: col-resize;
+
+  background: transparent;
+
+  flex-shrink: 0;
+  transition: background 0.15s ease;
+
+}
+
+.report-resizer:hover {
+  background:
+    rgba(14, 165, 233, .25);
+}
+
+.report-resizer:active {
+  background: rgba(14, 165, 233, 0.5);
+}
+
+.report-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.report-toggle-btn {
+  width: 32px;
+  height: 32px;
+
+  border-radius: 8px;
+
+  background:
+    rgba(255, 255, 255, .08);
+
+  cursor: pointer;
+}
+
+.report-reopen-btn {
+  position: fixed;
+
+  right: 12px;
+  bottom: 20px;
+
+  width: 48px;
+  height: 48px;
+
+  border-radius: 50%;
+
+  z-index: 100;
+
+  background:
+    rgb(14 165 233);
+
+  color: white;
+}
+
+/* Extra safety: ensure report sidebar never collapses to width:0 on mobile.
+   Visibility is controlled by the `.mobile-open` transform. */
+@media (max-width: 768px) {
+  .report-sidebar.collapsed {
+    width: 90vw !important;
+    min-width: 0 !important;
+    max-width: 420px !important;
+  }
+}

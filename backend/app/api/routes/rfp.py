@@ -1,10 +1,13 @@
 import json
+from pydoc import text
 import shutil
 
 from pathlib import Path
 from datetime import datetime
 
 from fastapi import APIRouter, UploadFile, File
+
+from app.services.analysis_orchestrator import run_analysis
 from sqlalchemy.orm import Session
 from fastapi.responses import FileResponse
 
@@ -40,6 +43,11 @@ from app.services.chat_memory import (
 from app.services.export_service import generate_docx_report, generate_pdf_report
 from app.services.context_memory import save_context
 from app.services import report_store
+from app.services.rfp_extractor import extract_rfp_metadata
+from app.services.compliance_matrix import generate_compliance_matrix
+
+from app.services.solicitation_classifier import classify_solicitation
+from app.services.proposal_strategy import generate_strategy
 
 # -----------------------------------
 # Router
@@ -60,7 +68,7 @@ async def upload_rfp(session_id: str, file: UploadFile = File(...)):
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-   # Extract PDF text
+    # Extract PDF text
     text = extract_text_from_pdf(str(file_path))
 
     # OCR fallback
@@ -69,30 +77,54 @@ async def upload_rfp(session_id: str, file: UploadFile = File(...)):
         text = extract_text_with_ocr(str(file_path))
 
     # Extract page-aware documents
-    documents = extract_documents_from_pdf(
-        str(file_path)
-    )
+    documents = extract_documents_from_pdf(str(file_path))
 
     # Chunk document
-    chunks = chunk_document(
-    documents
-    )
+    chunks = chunk_document(documents)
     print("SESSION:", session_id)
     print("CHUNKS CREATED:", len(chunks))
 
     # Generate executive summary
     document_summary = generate_document_summary(text)
-
     # Save context memory
-    save_context(session_id=session_id, context_type="summary", content=document_summary)
-    save_context(session_id=session_id, context_type="document_name", content=file.filename)
-    save_context(session_id=session_id, context_type="upload_time", content=str(datetime.now()))
-
-    
+    save_context(
+        session_id=session_id, context_type="summary", content=document_summary
+    )
+    save_context(
+        session_id=session_id, context_type="document_name", content=file.filename
+    )
+    save_context(
+        session_id=session_id, context_type="upload_time", content=str(datetime.now())
+    )
 
     # Store embeddings
     create_vector_store(session_id=session_id, chunks=chunks)
     print("VECTOR STORE CREATED")
+
+    # Generate structured procurement extraction
+    try:
+        structured_data = extract_rfp_metadata(text)
+
+    except Exception as e:
+
+        print("RFP EXTRACTION ERROR:", e)
+
+        structured_data = {
+        "status": "failed",
+        "message": str(e)
+        }
+
+    print("STRUCTURED EXTRACTION COMPLETE")
+
+    analysis = run_analysis(text)
+
+    classification = analysis["classification"]
+
+    strategy = analysis["strategy"]
+
+    compliance_matrix = analysis["compliance"]
+
+    print("COMPLIANCE MATRIX COMPLETE")
 
     # Run AI extraction (limited)
     results = await process_chunks_async(chunks[:5])
@@ -105,14 +137,20 @@ async def upload_rfp(session_id: str, file: UploadFile = File(...)):
 
     # Add summary
     aggregated["summary"] = [{"value": document_summary}]
+    aggregated["structured_data"] = structured_data
+    aggregated["compliance_matrix"] = compliance_matrix
 
     # Add confidence scores
-    aggregated["scope_of_work"] = add_confidence_scores(aggregated.get("scope_of_work", []))
+    aggregated["scope_of_work"] = add_confidence_scores(
+        aggregated.get("scope_of_work", [])
+    )
     aggregated["deadlines"] = add_confidence_scores(aggregated.get("deadlines", []))
     aggregated["staffing_requirements"] = add_confidence_scores(
         aggregated.get("staffing_requirements", [])
     )
-    aggregated["compliance_items"] = add_confidence_scores(aggregated.get("compliance_items", []))
+    aggregated["compliance_items"] = add_confidence_scores(
+        aggregated.get("compliance_items", [])
+    )
 
     # Save structured report memory
     save_context(
@@ -130,6 +168,17 @@ async def upload_rfp(session_id: str, file: UploadFile = File(...)):
     """,
     )
 
+    save_context(
+        session_id=session_id,
+        context_type="structured_extraction",
+        content=json.dumps(structured_data),
+    )
+
+    save_context(
+        session_id=session_id,
+        context_type="compliance_matrix",
+        content=json.dumps(compliance_matrix),
+    )
     # Store report in database (per session)
     report_store.save_report(session_id, aggregated)
 
@@ -141,6 +190,10 @@ async def upload_rfp(session_id: str, file: UploadFile = File(...)):
         "total_chunks": len(chunks),
         "processed_chunks": len(results),
         "report": aggregated,
+        "structured_data": structured_data,
+        "compliance_matrix": compliance_matrix,
+        "classification": classification,
+        "proposal_strategy": strategy,
     }
 
 
@@ -200,7 +253,6 @@ async def delete_document(filename: str):
     return {"message": "PDF deleted"}
 
 
-
 @router.get("/report")
 async def get_report(session_id: str):
     report = report_store.get_report(session_id)
@@ -217,17 +269,12 @@ async def search_rfp(session_id: str, query: str):
     # NOTE: existing search_vector_store uses global session store.
     results = search_vector_store(session_id=session_id, query=query)
     return {
-    "query": query,
-    "results": [
-        {
-            "page": doc.metadata.get(
-                "page"
-            ),
-            "content": doc.page_content
-        }
-        for doc in results
-    ]
-}
+        "query": query,
+        "results": [
+            {"page": doc.metadata.get("page"), "content": doc.page_content}
+            for doc in results
+        ],
+    }
 
 
 # -----------------------------------
@@ -351,4 +398,3 @@ async def clear_chat(session_id: str):
 async def clear_all_chats():
     delete_all_sessions()
     return {"message": "All chats cleared"}
-

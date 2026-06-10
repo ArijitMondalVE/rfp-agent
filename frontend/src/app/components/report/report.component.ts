@@ -1,7 +1,21 @@
-import { Component } from '@angular/core';
+import { Component, Output, EventEmitter } from '@angular/core';
 import { CommonModule, NgIf, NgFor } from '@angular/common';
 
 import { ApiService } from '../../services/api.service';
+
+interface Classification {
+  solicitation_type: string;
+  confidence: number;
+  reason: string;
+}
+
+interface ProposalStrategy {
+  bid_recommendation: string;
+  response_strategy: string[];
+  win_themes: string[];
+  risks: string[];
+  critical_items: string[];
+}
 
 @Component({
   selector: 'app-report',
@@ -11,10 +25,21 @@ import { ApiService } from '../../services/api.service';
   styleUrls: ['./report.css', './report.resizable.css'],
 })
 export class ReportComponent {
+  @Output() toggleSidebar = new EventEmitter<void>();
+
   latestReport: any | null = null;
 
   copyStatus: 'idle' | 'copied' | 'failed' = 'idle';
 
+  activeTab: 'summary' | 'structured' | 'compliance' | 'classification' | 'strategy' = 'summary';
+
+  structuredData: any = null;
+
+  complianceMatrix: any[] = [];
+
+  classification: Classification | null = null;
+
+  proposalStrategy: ProposalStrategy | null = null;
 
   // UI state
   exporting = false;
@@ -26,9 +51,7 @@ export class ReportComponent {
   private resizeStartY = 0;
   private resizeStartH = 0;
 
-  constructor(
-    private api: ApiService
-  ) {}
+  constructor(private api: ApiService) {}
 
   ngAfterViewInit() {
     // Used by drag-to-resize handle
@@ -42,9 +65,8 @@ export class ReportComponent {
 
     this.resizeStartH = el.getBoundingClientRect().height;
 
-    const clientY = (ev instanceof TouchEvent)
-      ? ev.touches?.[0]?.clientY
-      : (ev as MouseEvent).clientY;
+    const clientY =
+      ev instanceof TouchEvent ? ev.touches?.[0]?.clientY : (ev as MouseEvent).clientY;
 
     if (clientY == null) return;
 
@@ -54,9 +76,8 @@ export class ReportComponent {
     ev.preventDefault();
 
     const onMove = (e: MouseEvent | TouchEvent) => {
-      const clientY2 = (e instanceof TouchEvent)
-        ? e.touches?.[0]?.clientY
-        : (e as MouseEvent).clientY;
+      const clientY2 =
+        e instanceof TouchEvent ? e.touches?.[0]?.clientY : (e as MouseEvent).clientY;
 
       if (clientY2 == null) return;
 
@@ -91,7 +112,18 @@ export class ReportComponent {
    * (optional in future), and we enable exports directly.
    */
   setReportFromUploadResponse(payload: any) {
+    console.log('UPLOAD RESPONSE:', payload);
+
     this.latestReport = payload?.report ?? payload ?? null;
+
+    this.structuredData = payload?.structured_data || payload?.report?.structured_data || null;
+
+    this.complianceMatrix = payload?.report?.compliance_matrix || payload?.compliance_matrix || [];
+
+    this.classification = payload?.classification || payload?.report?.classification || null;
+
+    this.proposalStrategy =
+      payload?.proposal_strategy || payload?.report?.proposal_strategy || null;
   }
 
   private downloadBlob(blob: Blob, filename: string) {
@@ -120,9 +152,8 @@ export class ReportComponent {
       return;
     }
 
-    const apiCall = format === 'docx'
-      ? this.api.exportDocx(sessionId)
-      : this.api.exportPdf(sessionId);
+    const apiCall =
+      format === 'docx' ? this.api.exportDocx(sessionId) : this.api.exportPdf(sessionId);
 
     apiCall.subscribe({
       next: (blob) => {
@@ -133,7 +164,7 @@ export class ReportComponent {
         console.error(err);
         this.exportError = 'Export failed. Upload an RFP first.';
         this.exporting = false;
-      }
+      },
     });
   }
 
@@ -154,33 +185,54 @@ export class ReportComponent {
 
     const parts: string[] = [];
 
+    // Classification
+    if (this.classification) {
+      parts.push('Classification');
+
+      parts.push(`Solicitation Type: ${this.classification.solicitation_type || 'Unknown'}`);
+
+      parts.push(`Reason: ${this.classification.reason || ''}`);
+
+      parts.push('');
+    }
+
+    // Strategy
+    if (this.proposalStrategy) {
+      parts.push('Proposal Strategy');
+
+      if (this.proposalStrategy.bid_recommendation) {
+        parts.push(`Bid Recommendation: ${this.proposalStrategy.bid_recommendation}`);
+      }
+
+      const appendStrategyList = (title: string, items: string[]) => {
+        if (!items?.length) return;
+
+        parts.push(title);
+
+        for (const item of items) {
+          parts.push(`- ${item}`);
+        }
+
+        parts.push('');
+      };
+
+      appendStrategyList('Win Themes', this.proposalStrategy.win_themes);
+
+      appendStrategyList('Risks', this.proposalStrategy.risks);
+
+      appendStrategyList('Critical Compliance Items', this.proposalStrategy.critical_items);
+    }
+
     const execSummary = this.getSummaryText();
+
     if (execSummary) {
       parts.push('Executive Summary');
       parts.push(execSummary);
       parts.push('');
     }
 
-    const appendList = (title: string, items: any[] | undefined) => {
-      if (!items?.length) return;
-      parts.push(title);
-      for (const it of items) {
-        const line = this.formatItem(it);
-        if (line) parts.push(`- ${line}`);
-      }
-      parts.push('');
-    };
-
-    appendList('Scope of Work', this.latestReport?.scope_of_work);
-    appendList('Deliverables', this.latestReport?.deliverables);
-    appendList('Objectives', this.latestReport?.objectives);
-    appendList('Deadlines', this.latestReport?.deadlines);
-    appendList('Staffing Requirements', this.latestReport?.staffing_requirements);
-    appendList('Compliance Items', this.latestReport?.compliance_items);
-
     return this.cleanText(parts.join('\n'));
   }
-
   async copyReportText() {
     if (!this.latestReport) return;
 
@@ -220,12 +272,12 @@ export class ReportComponent {
     }
   }
 
-
   formatItem(item: any): string {
     if (item == null) return '';
     if (typeof item === 'string') return this.cleanText(item);
     if (typeof item === 'number') return String(item);
-    if (typeof item === 'object') return this.cleanText(item.value ?? item.text ?? item.content ?? String(item));
+    if (typeof item === 'object')
+      return this.cleanText(item.value ?? item.text ?? item.content ?? String(item));
     return this.cleanText(String(item));
   }
 
@@ -233,7 +285,7 @@ export class ReportComponent {
     const summary = this.latestReport?.summary;
     if (!summary) return '';
     const text = Array.isArray(summary)
-      ? summary.map((s: any) => typeof s === 'string' ? s : s.value ?? '').join(' ')
+      ? summary.map((s: any) => (typeof s === 'string' ? s : (s.value ?? ''))).join(' ')
       : String(summary);
     return this.cleanText(text);
   }
@@ -257,4 +309,3 @@ export class ReportComponent {
     return text.trim();
   }
 }
-

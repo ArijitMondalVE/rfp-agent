@@ -6,20 +6,17 @@ import {
   ChangeDetectionStrategy,
   Inject,
   PLATFORM_ID,
-  ElementRef,
   OnInit,
 } from '@angular/core';
 import { UploadComponent } from './components/upload/upload.component';
 import { ChatComponent } from './components/chat/chat.component';
 import { ChatWindow } from './components/chat-window/chat-window';
 import { ReportComponent } from './components/report/report.component';
-import { CommonModule } from '@angular/common';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { ApiService } from './services/api.service';
 import { OnDestroy } from '@angular/core';
 import { PdfDeleteModalComponent } from './components/pdf-delete-modal/pdf-delete-modal.component';
 import { ConfirmDeleteModalComponent } from './components/confirm-delete-modal/confirm-delete-modal.component';
-
-
 
 type RecentDoc = {
   filename: string;
@@ -41,14 +38,23 @@ type RecentDoc = {
     ConfirmDeleteModalComponent,
   ],
 
-
-
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css'],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AppComponent implements OnDestroy, OnInit {
+  private isMobileCached: boolean | null = null;
+
+  get isMobile(): boolean {
+    if (this.isMobileCached !== null) return this.isMobileCached;
+    if (!isPlatformBrowser(this.platformId)) {
+      this.isMobileCached = false;
+      return false;
+    }
+    this.isMobileCached = window.innerWidth <= 768;
+    return this.isMobileCached;
+  }
   // PDF delete confirmation modal state (must match chat history modal style)
   showPdfDeleteConfirm = false;
   pdfToDelete: string | null = null;
@@ -57,48 +63,119 @@ export class AppComponent implements OnDestroy, OnInit {
   showConfirmDeleteConfirm = false;
   confirmDeleteTargetLabel: string | null = null;
 
-
   @ViewChild('reportComp') reportComp!: ReportComponent;
   @ViewChild('chatComp') chatComp!: ChatComponent;
   @ViewChild('chatWindow') chatWindow!: ChatWindow;
-  @ViewChild('reportPanel')
-  reportPanel!: ElementRef<HTMLDivElement>;
 
-  reportHeight = 300;
+  reportSidebarWidth = 420;
 
-  isVerticalResizing = false;
+  reportSidebarCollapsed = false;
 
-  private verticalResizeStartY = 0;
+  private resizingReport = false;
+  isReportResizing = false;
 
-  private verticalResizeStartHeight = 0;
+  private startX = 0;
 
-  private verticalDragHeight = 300;
+  private startWidth = 420;
 
-  private readonly MIN_REPORT_HEIGHT = 150;
+  reportSidebarOpen = false;
 
-  private readonly MAX_REPORT_HEIGHT = 700;
+  toggleReportSidebar() {
+    const isMobile = window.innerWidth <= 768;
 
-  startVerticalResize(event: MouseEvent | TouchEvent): void {
-    // Enable resizing for both desktop and mobile.
-    // Height remains clamped by MIN/MAX so the layout doesn't break.
-
-    if (event instanceof MouseEvent) {
-      event.preventDefault();
+    if (isMobile) {
+      // Mobile: toggle between open (visible with transform) and closed (hidden)
+      if (this.reportSidebarOpen) {
+        this.reportSidebarOpen = false;
+      } else {
+        this.reportSidebarOpen = true;
+        this.reportSidebarCollapsed = false;
+      }
+      return;
     }
 
-    const clientY = event instanceof TouchEvent ? event.touches?.[0]?.clientY : event.clientY;
+    // Desktop/tablet: use collapsed state for smooth width animation
+    const wasCollapsed = this.reportSidebarCollapsed;
+    this.reportSidebarCollapsed = !wasCollapsed;
 
-    if (clientY == null) return;
-
-    this.isVerticalResizing = true;
-    this.verticalResizeStartY = clientY;
-    this.verticalResizeStartHeight = this.reportHeight;
-    this.verticalDragHeight = this.reportHeight;
-
-    document.body.style.cursor = 'row-resize';
-    document.body.style.userSelect = 'none';
+    if (!wasCollapsed) {
+      // Was expanded, now collapsing
+      this.reportSidebarOpen = false;
+    } else {
+      // Was collapsed, now expanding
+      this.reportSidebarOpen = true;
+    }
   }
 
+  toggleReportCollapsedFromButton() {
+    const isMobile = window.innerWidth <= 768;
+    if (isMobile) {
+      // Mobile: close the sidebar via transform
+      this.reportSidebarOpen = false;
+      return;
+    }
+
+    // Desktop: same as toggleReportSidebar
+    this.toggleReportSidebar();
+  }
+
+  openReportSidebar() {
+    this.reportSidebarOpen = true;
+    this.reportSidebarCollapsed = false;
+    this.cdr.markForCheck();
+  }
+  startReportResize(event: MouseEvent) {
+    this.isReportResizing = true;
+    event.preventDefault();
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    const startX = event.clientX;
+
+    const startWidth = this.reportSidebarWidth;
+
+    let animationFrame: number | null = null;
+
+    const onMouseMove = (e: MouseEvent) => {
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+      }
+
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+
+      animationFrame = requestAnimationFrame(() => {
+        const delta = startX - e.clientX;
+
+        this.reportSidebarWidth = Math.max(320, Math.min(startWidth + delta, 900));
+        this.cdr.markForCheck();
+      });
+    };
+
+    const onMouseUp = () => {
+      this.isReportResizing = false;
+
+      this.cdr.markForCheck();
+
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+      }
+
+      document.removeEventListener('mousemove', onMouseMove);
+
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+
+    document.addEventListener('mousemove', onMouseMove);
+
+    document.addEventListener('mouseup', onMouseUp);
+  }
+
+  closeReportSidebar() {
+    this.reportSidebarOpen = false;
+  }
   //Session
 
   onActiveChatChanged(sessionId: string) {
@@ -127,45 +204,6 @@ export class AppComponent implements OnDestroy, OnInit {
     return sessionId;
   }
 
-  private onVerticalResize = (event: MouseEvent | TouchEvent): void => {
-    if (!this.isVerticalResizing) return;
-
-    if (event instanceof TouchEvent) {
-      event.preventDefault();
-    }
-
-    const clientY = event instanceof TouchEvent ? event.touches?.[0]?.clientY : event.clientY;
-
-    if (clientY == null) return;
-
-    const delta = clientY - this.verticalResizeStartY;
-
-    const newHeight = Math.min(
-      this.MAX_REPORT_HEIGHT,
-      Math.max(this.MIN_REPORT_HEIGHT, this.verticalResizeStartHeight + delta),
-    );
-
-    this.verticalDragHeight = newHeight;
-
-    requestAnimationFrame(() => {
-      if (this.reportPanel) {
-        this.reportPanel.nativeElement.style.height = `${newHeight}px`;
-      }
-    });
-  };
-
-  stopVerticalResize = (): void => {
-    if (!this.isVerticalResizing) return;
-
-    this.isVerticalResizing = false;
-    this.reportHeight = this.verticalDragHeight;
-
-    document.body.style.cursor = '';
-    document.body.style.userSelect = '';
-
-    this.cdr.markForCheck();
-  };
-
   recentDocuments: RecentDoc[] = [];
 
   // Selected chat session id from sidebar.
@@ -177,6 +215,9 @@ export class AppComponent implements OnDestroy, OnInit {
   // Sidebar toggle
   sidebarOpen = true;
 
+  // Upload section collapsible (sandwich bar toggle)
+  uploadSectionOpen = true;
+
   private readonly STORAGE_KEY = 'rfp_recent_documents_v1';
 
   constructor(
@@ -187,35 +228,26 @@ export class AppComponent implements OnDestroy, OnInit {
     this.activeSessionId = this.getOrCreateSessionId();
 
     console.log('APP SESSION:', this.activeSessionId);
-
     this.loadRecentDocuments();
-    if (typeof window !== 'undefined') {
-      window.addEventListener('mousemove', this.onVerticalResize);
-      window.addEventListener('mouseup', this.stopVerticalResize);
-
-      window.addEventListener('touchmove', this.onVerticalResize, {
-        passive: false,
-      });
-
-      window.addEventListener('touchend', this.stopVerticalResize);
-    }
   }
 
   ngOnInit(): void {
     this.activeSessionId = this.getOrCreateSessionId();
 
     console.log('APP SESSION:', this.activeSessionId);
-  }
 
-  ngOnDestroy(): void {
-    if (typeof window !== 'undefined') {
-      window.removeEventListener('mousemove', this.onVerticalResize);
-      window.removeEventListener('mouseup', this.stopVerticalResize);
-
-      window.removeEventListener('touchmove', this.onVerticalResize);
-      window.removeEventListener('touchend', this.stopVerticalResize);
+    // Mobile: show report sidebar by default (<= 768px)
+    if (isPlatformBrowser(this.platformId)) {
+      const isMobile = window.innerWidth <= 768;
+      if (isMobile) {
+        this.reportSidebarOpen = true;
+        this.reportSidebarCollapsed = false;
+        this.cdr.markForCheck();
+      }
     }
   }
+
+  ngOnDestroy(): void {}
 
   private loadRecentDocuments() {
     // First load from localStorage cache
@@ -309,9 +341,6 @@ export class AppComponent implements OnDestroy, OnInit {
     this.cdr.detectChanges();
   }
 
-
-
-
   confirmPdfDelete() {
     if (!this.pdfToDelete) return;
 
@@ -366,7 +395,6 @@ export class AppComponent implements OnDestroy, OnInit {
   }
 
   closeConfirmDeleteModal(): void {
-
     this.showConfirmDeleteConfirm = false;
     this.confirmDeleteTargetLabel = null;
     this.cdr.detectChanges();
@@ -376,13 +404,11 @@ export class AppComponent implements OnDestroy, OnInit {
     event.stopPropagation();
     if (this.recentDocuments.length === 0) return;
 
-    // Use modern confirm modal (instead of window.confirm) 
+    // Use modern confirm modal (instead of window.confirm)
     this.confirmDeleteTargetLabel = null;
     this.showConfirmDeleteConfirm = true;
     this.cdr.detectChanges();
   }
-
-
 
   formatUploadedAt(ts: number): string {
     if (!ts) return 'Uploaded recently';

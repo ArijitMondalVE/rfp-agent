@@ -1,178 +1,392 @@
 <div class="space-y-4">
   <div class="flex items-start justify-between gap-4">
-    <div>
+    <div class="flex items-center gap-2">
+      <button
+        class="rounded-lg p-2 bg-slate-800 border border-white/10 hover:bg-slate-700 md:hidden"
+        (click)="toggleSidebar.emit()"
+      >
+        📊
+      </button>
       <h2 class="text-lg font-semibold text-white">Report</h2>
-      <p class="mt-1 text-sm text-slate-300">
-        Export the latest analyzed report (DOCX/PDF). Note: the backend stores the latest report in
-        memory.
-      </p>
+    </div>
+    <p class="mt-1 text-sm text-slate-300">
+      Export the latest analyzed report (DOCX/PDF). Note: the backend stores the latest report in
+      memory.
+    </p>
+  </div>
+
+  <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+    <button
+      class="upload-action inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium shadow-soft transition hover:brightness-105 active:scale-[0.99] disabled:opacity-60"
+      [disabled]="exporting"
+      (click)="downloadDocx()"
+    >
+      <span *ngIf="!exporting">Download DOCX</span>
+      <span *ngIf="exporting">Exporting…</span>
+    </button>
+
+    <button
+      class="upload-action inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium shadow-soft transition hover:brightness-105 active:scale-[0.99] disabled:opacity-60"
+      [disabled]="exporting"
+      (click)="downloadPdf()"
+    >
+      Download PDF
+    </button>
+  </div>
+</div>
+
+<div
+  *ngIf="exportError"
+  class="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-200"
+>
+  {{ exportError }}
+</div>
+
+<div
+  *ngIf="copyStatus === 'failed'"
+  class="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-200"
+>
+  Copy failed. Please try again.
+</div>
+
+<div class="rounded-xl border border-white/10 bg-slate-900/30 p-4 preview-resizable-root">
+  <!-- Preview Header (always visible) -->
+  <div class="flex items-center justify-between gap-4 report-preview-header">
+    <div class="preview-toggle" (click)="togglePreview()">
+      <h3 class="text-sm font-semibold text-slate-200 preview-label">Preview</h3>
+      <svg
+        class="toggle-icon"
+        [class.collapsed]="previewCollapsed"
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <polyline points="6 9 12 15 18 9"></polyline>
+      </svg>
     </div>
 
-    <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-      <button
-        class="upload-action inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium shadow-soft transition hover:brightness-105 active:scale-[0.99] disabled:opacity-60"
-        [disabled]="exporting"
-        (click)="downloadDocx()"
-      >
-        <span *ngIf="!exporting">Download DOCX</span>
-        <span *ngIf="exporting">Exporting…</span>
+    <button
+      class="upload-action inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-medium shadow-soft transition active:scale-[0.99] disabled:opacity-60"
+      [ngClass]="{
+        'bg-emerald-500/20 text-emerald-100 border border-emerald-500/30': copyStatus === 'copied',
+        'hover:brightness-105': copyStatus !== 'copied',
+      }"
+      [disabled]="!latestReport || copyStatus === 'copied'"
+      (click)="copyReportText()"
+      aria-label="Copy generated report"
+    >
+      <span *ngIf="copyStatus !== 'copied'">Copy</span>
+      <span *ngIf="copyStatus === 'copied'">Copied</span>
+    </button>
+  </div>
+
+  <div class="report-tabs mt-4">
+    <div class="report-tabs-scroller">
+      <button [class.active]="activeTab === 'summary'" (click)="activeTab = 'summary'">
+        Summary
+      </button>
+
+      <button [class.active]="activeTab === 'structured'" (click)="activeTab = 'structured'">
+        Structured Data
+      </button>
+
+      <button [class.active]="activeTab === 'compliance'" (click)="activeTab = 'compliance'">
+        Compliance Matrix
       </button>
 
       <button
-        class="upload-action inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium shadow-soft transition hover:brightness-105 active:scale-[0.99] disabled:opacity-60"
-        [disabled]="exporting"
-        (click)="downloadPdf()"
+        [class.active]="activeTab === 'classification'"
+        (click)="activeTab = 'classification'"
       >
-        Download PDF
+        Classification
+      </button>
+
+      <button [class.active]="activeTab === 'strategy'" (click)="activeTab = 'strategy'">
+        Strategy
       </button>
     </div>
   </div>
 
-  <div
-    *ngIf="exportError"
-    class="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-200"
-  >
-    {{ exportError }}
-  </div>
-
-  <div
-    *ngIf="copyStatus === 'failed'"
-    class="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-200"
-  >
-    Copy failed. Please try again.
-  </div>
-
-  <div class="rounded-xl border border-white/10 bg-slate-900/30 p-4 preview-resizable-root">
-    <!-- Preview Header (always visible) -->
-    <div class="flex items-center justify-between gap-4">
-      <div class="preview-toggle" (click)="togglePreview()">
-        <h3 class="text-sm font-semibold text-slate-200 preview-label">Preview</h3>
-        <svg
-          class="toggle-icon"
-          [class.collapsed]="previewCollapsed"
-          xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <polyline points="6 9 12 15 18 9"></polyline>
-        </svg>
-      </div>
-
-      <button
-        class="upload-action inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-medium shadow-soft transition active:scale-[0.99] disabled:opacity-60"
-        [ngClass]="{
-          'bg-emerald-500/20 text-emerald-100 border border-emerald-500/30':
-            copyStatus === 'copied',
-          'hover:brightness-105': copyStatus !== 'copied',
-        }"
-        [disabled]="!latestReport || copyStatus === 'copied'"
-        (click)="copyReportText()"
-        aria-label="Copy generated report"
-      >
-        <span *ngIf="copyStatus !== 'copied'">Copy</span>
-        <span *ngIf="copyStatus === 'copied'">Copied</span>
-      </button>
-    </div>
-
-    <ng-container *ngIf="!previewCollapsed">
-      <ng-container *ngIf="latestReport; else emptyStateTpl">
-        <div class="mt-3 space-y-6">
+  <ng-container *ngIf="!previewCollapsed">
+    <ng-container *ngIf="latestReport; else emptyStateTpl">
+      <!-- SUMMARY TAB -->
+      <div *ngIf="activeTab === 'summary'">
+        <div class="mt-3 space-y-4">
           <!-- Executive Summary -->
-          <div *ngIf="latestReport?.summary?.length">
-            <div class="report-section-title text-sm text-white border-b border-white/10 pb-1 mb-3">
-              Executive Summary
-            </div>
-            <div class="mt-2 report-body whitespace-pre-wrap">
+          <details *ngIf="latestReport?.summary?.length" class="report-accordion" open>
+            <summary class="report-accordion-summary">
+              <div class="report-section-title text-sm text-white border-b border-white/10 pb-1">
+                Executive Summary
+              </div>
+            </summary>
+            <div class="mt-2 report-body whitespace-pre-wrap report-accordion-body">
               {{ getSummaryText() }}
             </div>
-          </div>
+          </details>
 
           <!-- Scope of Work -->
-          <div *ngIf="latestReport?.scope_of_work?.length">
-            <div class="report-section-title text-sm text-white border-b border-white/10 pb-1 mb-3">
-              Scope of Work
+          <details *ngIf="latestReport?.scope_of_work?.length" class="report-accordion">
+            <summary class="report-accordion-summary">
+              <div class="report-section-title text-sm text-white border-b border-white/10 pb-1">
+                Scope of Work
+              </div>
+            </summary>
+            <div class="mt-2 report-accordion-body">
+              <ul class="list-disc pl-5 text-sm text-slate-200 space-y-1.5">
+                <li *ngFor="let item of latestReport.scope_of_work">
+                  {{ formatItem(item) }}
+                </li>
+              </ul>
             </div>
-            <ul class="mt-2 list-disc pl-5 text-sm text-slate-200 space-y-1.5">
-              <li *ngFor="let item of latestReport.scope_of_work">
-                {{ formatItem(item) }}
-              </li>
-            </ul>
-          </div>
+          </details>
 
           <!-- Deliverables -->
-          <div *ngIf="latestReport?.deliverables?.length">
-            <div class="report-section-title text-sm text-white border-b border-white/10 pb-1 mb-3">
-              Deliverables
+          <details *ngIf="latestReport?.deliverables?.length" class="report-accordion">
+            <summary class="report-accordion-summary">
+              <div class="report-section-title text-sm text-white border-b border-white/10 pb-1">
+                Deliverables
+              </div>
+            </summary>
+            <div class="mt-2 report-accordion-body">
+              <ul class="list-disc pl-5 text-sm text-slate-200 space-y-1.5">
+                <li *ngFor="let item of latestReport.deliverables">
+                  {{ formatItem(item) }}
+                </li>
+              </ul>
             </div>
-            <ul class="mt-2 list-disc pl-5 text-sm text-slate-200 space-y-1.5">
-              <li *ngFor="let item of latestReport.deliverables">
-                {{ formatItem(item) }}
-              </li>
-            </ul>
-          </div>
+          </details>
 
           <!-- Objectives -->
-          <div *ngIf="latestReport?.objectives?.length">
-            <div class="report-section-title text-sm text-white border-b border-white/10 pb-1 mb-3">
-              Objectives
+          <details *ngIf="latestReport?.objectives?.length" class="report-accordion">
+            <summary class="report-accordion-summary">
+              <div class="report-section-title text-sm text-white border-b border-white/10 pb-1">
+                Objectives
+              </div>
+            </summary>
+            <div class="mt-2 report-accordion-body">
+              <ul class="list-disc pl-5 text-sm text-slate-200 space-y-1.5">
+                <li *ngFor="let item of latestReport.objectives">
+                  {{ formatItem(item) }}
+                </li>
+              </ul>
             </div>
-            <ul class="mt-2 list-disc pl-5 text-sm text-slate-200 space-y-1.5">
-              <li *ngFor="let item of latestReport.objectives">
-                {{ formatItem(item) }}
-              </li>
-            </ul>
-          </div>
+          </details>
 
           <!-- Deadlines -->
-          <div *ngIf="latestReport?.deadlines?.length">
-            <div class="report-section-title text-sm text-white border-b border-white/10 pb-1 mb-3">
-              Deadlines
+          <details *ngIf="latestReport?.deadlines?.length" class="report-accordion">
+            <summary class="report-accordion-summary">
+              <div class="report-section-title text-sm text-white border-b border-white/10 pb-1">
+                Deadlines
+              </div>
+            </summary>
+            <div class="mt-2 report-accordion-body">
+              <ul class="list-disc pl-5 text-sm text-slate-200 space-y-1.5">
+                <li *ngFor="let item of latestReport.deadlines">
+                  {{ formatItem(item) }}
+                </li>
+              </ul>
             </div>
-            <ul class="mt-2 list-disc pl-5 text-sm text-slate-200 space-y-1.5">
-              <li *ngFor="let item of latestReport.deadlines">
-                {{ formatItem(item) }}
-              </li>
-            </ul>
-          </div>
+          </details>
 
           <!-- Staffing Requirements -->
-          <div *ngIf="latestReport?.staffing_requirements?.length">
-            <div class="report-section-title text-sm text-white border-b border-white/10 pb-1 mb-3">
-              Staffing Requirements
+          <details *ngIf="latestReport?.staffing_requirements?.length" class="report-accordion">
+            <summary class="report-accordion-summary">
+              <div class="report-section-title text-sm text-white border-b border-white/10 pb-1">
+                Staffing Requirements
+              </div>
+            </summary>
+            <div class="mt-2 report-accordion-body">
+              <ul class="list-disc pl-5 text-sm text-slate-200 space-y-1.5">
+                <li *ngFor="let item of latestReport.staffing_requirements">
+                  {{ formatItem(item) }}
+                </li>
+              </ul>
             </div>
-            <ul class="mt-2 list-disc pl-5 text-sm text-slate-200 space-y-1.5">
-              <li *ngFor="let item of latestReport.staffing_requirements">
-                {{ formatItem(item) }}
-              </li>
-            </ul>
-          </div>
+          </details>
 
           <!-- Compliance Items -->
-          <div *ngIf="latestReport?.compliance_items?.length">
-            <div class="report-section-title text-sm text-white border-b border-white/10 pb-1 mb-3">
-              Compliance Items
+          <details *ngIf="latestReport?.compliance_items?.length" class="report-accordion">
+            <summary class="report-accordion-summary">
+              <div class="report-section-title text-sm text-white border-b border-white/10 pb-1">
+                Compliance Items
+              </div>
+            </summary>
+            <div class="mt-2 report-accordion-body">
+              <ul class="list-disc pl-5 text-sm text-slate-200 space-y-1.5">
+                <li *ngFor="let item of latestReport.compliance_items">
+                  {{ formatItem(item) }}
+                </li>
+              </ul>
             </div>
-            <ul class="mt-2 list-disc pl-5 text-sm text-slate-200 space-y-1.5">
-              <li *ngFor="let item of latestReport.compliance_items">
-                {{ formatItem(item) }}
-              </li>
-            </ul>
+          </details>
+        </div>
+      </div>
+      <!-- STRUCTURED -->
+
+      <div *ngIf="activeTab === 'structured'" class="mt-4">
+        <div *ngIf="structuredData" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="info-card">
+            <div class="label">Agency</div>
+            <div>{{ structuredData?.agency || 'Not specified' }}</div>
+          </div>
+
+          <div class="info-card">
+            <div class="label">Solicitation Type</div>
+            <div>{{ structuredData?.solicitation_type || 'Not specified' }}</div>
+          </div>
+
+          <div class="info-card">
+            <div class="label">Solicitation Number</div>
+            <div>{{ structuredData?.solicitation_number || 'Not specified' }}</div>
+          </div>
+
+          <div class="info-card">
+            <div class="label">Submission Deadline</div>
+            <div>{{ structuredData?.submission_deadline?.value || 'Not specified' }}</div>
+          </div>
+
+          <div class="info-card">
+            <div class="label">Contract Term</div>
+            <div>{{ structuredData?.contract_term?.value || 'Not specified' }}</div>
           </div>
         </div>
-      </ng-container>
+      </div>
+      <!-- COMPLIANCE -->
 
-      <ng-template #emptyStateTpl>
-        <div class="mt-3 text-sm text-slate-400">
-          Upload an RFP to generate a report. Preview will appear here when the client receives the
-          report JSON.
+      <div *ngIf="activeTab === 'compliance'" class="mt-4">
+        <!-- Desktop/table: show when not mobile -->
+        <div class="compliance-table-wrap">
+          <table *ngIf="complianceMatrix.length" class="compliance-table">
+            <thead>
+              <tr>
+                <th>Requirement</th>
+                <th>Category</th>
+                <th>Status</th>
+                <th>Page</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr *ngFor="let item of complianceMatrix">
+                <td>{{ item.requirement }}</td>
+                <td>{{ item.category }}</td>
+                <td>{{ item.status }}</td>
+                <td>{{ item.page }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-      </ng-template>
+
+        <!-- Mobile/cards: show at small widths -->
+        <div class="compliance-cards-wrap">
+          <div *ngIf="complianceMatrix.length" class="compliance-cards">
+            <div *ngFor="let item of complianceMatrix" class="compliance-card">
+              <div class="compliance-card-row">
+                <div class="compliance-card-label">Requirement</div>
+                <div class="compliance-card-value">{{ item.requirement }}</div>
+              </div>
+
+              <div class="compliance-card-row">
+                <div class="compliance-card-label">Category</div>
+                <div class="compliance-card-value">{{ item.category }}</div>
+              </div>
+
+              <div class="compliance-card-row">
+                <div class="compliance-card-label">Status</div>
+                <div class="compliance-card-value">{{ item.status }}</div>
+              </div>
+
+              <div class="compliance-card-row">
+                <div class="compliance-card-label">Page</div>
+                <div class="compliance-card-value">{{ item.page }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="!complianceMatrix.length" class="text-slate-400 text-sm">
+          No compliance matrix available.
+        </div>
+      </div>
+
+      <div *ngIf="activeTab === 'classification'" class="mt-4 space-y-4">
+        <div class="info-card">
+          <div class="label">Solicitation Type</div>
+          <div>{{ classification?.solicitation_type || 'Unknown' }}</div>
+        </div>
+
+        <div class="info-card">
+          <div class="label">Confidence</div>
+          <div>{{ classification?.confidence || '-' }}</div>
+        </div>
+
+        <div class="info-card">
+          <div class="label">Reason</div>
+          <div>{{ classification?.reason || 'Not available' }}</div>
+        </div>
+      </div>
+
+      <div *ngIf="activeTab === 'strategy'" class="mt-4 space-y-6">
+        <div class="info-card">
+          <div class="label">Bid Recommendation</div>
+          <div>
+            {{ proposalStrategy?.bid_recommendation || 'Not available' }}
+          </div>
+        </div>
+
+        <div *ngIf="proposalStrategy?.response_strategy?.length">
+          <h3 class="font-semibold text-white mb-2">Response Strategy</h3>
+
+          <ul class="list-disc pl-5 space-y-1">
+            <li *ngFor="let item of proposalStrategy?.response_strategy">
+              {{ item }}
+            </li>
+          </ul>
+        </div>
+
+        <div *ngIf="proposalStrategy?.win_themes?.length">
+          <h3 class="font-semibold text-white mb-2">Win Themes</h3>
+
+          <ul class="list-disc pl-5 space-y-1">
+            <li *ngFor="let item of proposalStrategy?.win_themes">
+              {{ item }}
+            </li>
+          </ul>
+        </div>
+
+        <div *ngIf="proposalStrategy?.risks?.length">
+          <h3 class="font-semibold text-white mb-2">Risks</h3>
+
+          <ul class="list-disc pl-5 space-y-1">
+            <li *ngFor="let item of proposalStrategy?.risks">
+              {{ item }}
+            </li>
+          </ul>
+        </div>
+
+        <div *ngIf="proposalStrategy?.critical_items?.length">
+          <h3 class="font-semibold text-white mb-2">Critical Compliance Items</h3>
+
+          <ul class="list-disc pl-5 space-y-1">
+            <li *ngFor="let item of proposalStrategy?.critical_items">
+              {{ item }}
+            </li>
+          </ul>
+        </div>
+      </div>
     </ng-container>
-  </div>
+
+    <ng-template #emptyStateTpl>
+      <div class="mt-3 text-sm text-slate-400">
+        Upload an RFP to generate a report. Preview will appear here when the client receives the
+        report JSON.
+      </div>
+    </ng-template>
+  </ng-container>
 </div>

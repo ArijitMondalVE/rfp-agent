@@ -112,16 +112,18 @@ def retrieve_context(session_id: str, question: str):
 
     summary_query = is_summary_query(question)
 
-    #temporary print for debugging
-    for doc in docs:
-        print("DOC METADATA:", doc.metadata)
-
     # Better retrieval for summaries
     search_query = "full document summary" if summary_query else question
 
     docs = search_vector_store(session_id, search_query, k=5 if summary_query else 3)
+
+    #temporary print for debugging (safe even if docs is empty)
+    for doc in docs:
+        print("DOC METADATA:", doc.metadata)
+
     if not docs:
         return "", summary_query
+
 
     context_parts = []
 

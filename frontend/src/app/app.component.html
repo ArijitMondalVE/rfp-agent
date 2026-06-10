@@ -1,12 +1,12 @@
 <div class="h-screen bg-slate-950 text-slate-100 flex flex-col overflow-hidden">
   <!-- Header -->
   <header
-    class="border-b border-white/10 bg-gradient-to-b from-sky-500/20 via-indigo-500/10 to-transparent"
+    class="border-b border-white/10 bg-gradient-to-b from-sky-500/20 via-indigo-500/10 to-transparent flex-shrink-0"
   >
-    <div class="flex items-center gap-4 px-6 py-6">
+    <div class="flex items-center gap-3 sm:gap-4 px-4 sm:px-6 py-4 sm:py-6">
       <button
         (click)="toggleSidebar()"
-        class="rounded-lg p-2 bg-slate-800 border border-white/10 hover:bg-slate-700 transition-colors"
+        class="rounded-lg p-2 bg-slate-800 border border-white/10 hover:bg-slate-700 transition-colors flex-shrink-0"
         [attr.aria-label]="sidebarOpen ? 'Close sidebar' : 'Open sidebar'"
       >
         <svg
@@ -38,10 +38,10 @@
           />
         </svg>
       </button>
-      
-      <div>
-        <h1 class="text-2xl font-semibold tracking-tight">RFP Intelligence Agent</h1>
-        <p class="mt-1 text-sm text-slate-300">
+
+      <div class="min-w-0 flex-1">
+        <h1 class="text-lg sm:text-2xl font-semibold tracking-tight truncate">RFP Intelligence Agent</h1>
+        <p class="mt-1 text-xs sm:text-sm text-slate-300 hidden sm:block">
           Upload RFP documents and chat with them using AI-powered RAG.
         </p>
       </div>
@@ -66,9 +66,19 @@
       [class.sidebar-open]="sidebarOpen"
     >
       <div [class.hidden]="!sidebarOpen" [class.contents]="!sidebarOpen">
-        <!-- Upload Section -->
-        <div class="sidebar-upload-section">
-          <app-upload (uploadComplete)="onDocumentUploaded($event)"></app-upload>
+        <!-- Upload Section with Sandwich Bar Toggle -->
+        <div class="sidebar-upload-section" [class.section-collapsed]="!uploadSectionOpen">
+          <div class="upload-section-header" (click)="uploadSectionOpen = !uploadSectionOpen">
+            <span class="upload-section-title">Upload RFP</span>
+            <button class="sandwich-toggle" [attr.aria-label]="uploadSectionOpen ? 'Collapse upload section' : 'Expand upload section'">
+              <svg class="sandwich-icon" [class.rotated]="!uploadSectionOpen" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </button>
+          </div>
+          <div class="upload-section-content" [class.content-collapsed]="!uploadSectionOpen">
+            <app-upload (uploadComplete)="onDocumentUploaded($event)"></app-upload>
+          </div>
         </div>
 
         <!-- Recent Documents -->
@@ -111,7 +121,6 @@
           ></app-pdf-delete-modal>
 
           <div class="space-y-2">
-
             <div
               *ngIf="recentDocuments.length === 0"
               class="rounded-xl border border-white/10 bg-slate-800/30 p-3"
@@ -142,7 +151,6 @@
                 {{ formatUploadedAt(doc.uploadedAt) }}
               </div>
             </div>
-
           </div>
         </div>
 
@@ -158,34 +166,60 @@
     </aside>
 
     <!-- RIGHT PANEL -->
-    <section class="main-content flex flex-col bg-slate-950 flex-1 min-h-0">
-      <!-- REPORT -->
-      <div
-        #reportPanel
-        class="report-panel shrink-0 border-b border-white/10 p-6 overflow-auto"
-        [style.height.px]="reportHeight"
-      >
-        <div class="max-w-5xl w-full mx-auto">
-          <app-report #reportComp></app-report>
-        </div>
-      </div>
-
-      <!-- REPORT ↕ CHAT RESIZER -->
-      <div
-        class="horizontal-resizer"
-        (mousedown)="startVerticalResize($event)"
-        (touchstart)="startVerticalResize($event)"
-        [class.resizing]="isVerticalResizing"
-      ></div>
-
-      <!-- CHAT -->
-      <div class="chat-wrapper flex-1 min-h-0 overflow-hidden flex flex-col">
-        <div class="chat-section-inner-wrapper flex-1 min-h-0 p-6 overflow-y-auto">
-          <div class="max-w-5xl w-full mx-auto h-full flex flex-col">
-            <app-chat #chatComp class="flex-1 w-full" [sessionId]="activeSessionId" (messageStreamComplete)="onMessageStreamComplete()"></app-chat>
+    <section class="main-content flex flex-row bg-slate-950 flex-1 min-h-0">
+      <!-- CHAT AREA -->
+      <div class="chat-area flex-1 min-w-0 flex flex-col">
+        <div class="chat-wrapper flex-1 min-h-0 overflow-hidden flex flex-col">
+          <div class="chat-section-inner-wrapper flex-1 min-h-0 p-6 overflow-y-auto">
+            <div class="max-w-6xl w-full mx-auto h-full flex flex-col">
+              <app-chat
+                #chatComp
+                class="flex-1 w-full"
+                [sessionId]="activeSessionId"
+                (messageStreamComplete)="onMessageStreamComplete()"
+              >
+              </app-chat>
+            </div>
           </div>
         </div>
       </div>
+
+      <div
+        *ngIf="reportSidebarOpen"
+        class="fixed inset-0 bg-black/50 z-50 md:hidden"
+        (click)="closeReportSidebar()"
+      ></div>
+
+      <!-- REPORT SIDEBAR -->
+
+      <div class="report-resizer" (mousedown)="startReportResize($event)"></div>
+
+      <aside
+        class="report-sidebar border-l border-white/10 bg-slate-900/40"
+        [class.animate]="!isReportResizing"
+        [class.mobile-open]="reportSidebarOpen"
+        [class.collapsed]="reportSidebarCollapsed"
+        [style.width.px]="reportSidebarCollapsed ? 0 : reportSidebarWidth"
+      >
+        <div class="h-full overflow-y-auto p-4">
+          <div class="report-toolbar">
+            <button
+              class="report-toggle-btn"
+              (click)="toggleReportCollapsedFromButton()"
+            >
+              ☰
+            </button>
+          </div>
+          <app-report #reportComp (toggleSidebar)="toggleReportSidebar()"> </app-report>
+        </div>
+      </aside>
+      <button
+        *ngIf="!reportSidebarOpen"
+        class="report-reopen-btn"
+        (click)="openReportSidebar()"
+      >
+        📊
+      </button>
     </section>
   </main>
 </div>
