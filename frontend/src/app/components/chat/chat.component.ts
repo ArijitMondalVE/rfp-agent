@@ -309,17 +309,14 @@ export class ChatComponent {
   // FORMAT MARKDOWN SAFELY
   // -----------------------------------
   formatMessage(content: string): string {
-    // Parse markdown - marked handles most cases correctly
-    const rawHtml = marked.parse(content) as string;
+    const normalized = content.replace(/Source:\s*Page\s*(\d+)/g, '\n\nSource: Page $1\n');
 
-    // Sanitize HTML
+    const rawHtml = marked.parse(normalized) as string;
+
     const domPurify = (DOMPurifyImport as any)?.default ?? DOMPurifyImport;
 
-    const sanitizeFn = domPurify?.sanitize?.bind(domPurify);
-
-    return typeof sanitizeFn === 'function' ? sanitizeFn(rawHtml) : rawHtml;
+    return domPurify?.sanitize?.(rawHtml) ?? rawHtml;
   }
-
   resetToEmptyState(): void {
     this.messages = [];
     this.question = '';
