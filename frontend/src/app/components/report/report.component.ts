@@ -42,7 +42,6 @@ export class ReportComponent {
   proposalStrategy: ProposalStrategy | null = null;
 
   // UI state
-  exporting = false;
   exportError: string | null = null;
   previewCollapsed = false;
 
@@ -142,13 +141,11 @@ export class ReportComponent {
   }
 
   private exportFile(format: 'docx' | 'pdf') {
-    this.exporting = true;
     this.exportError = null;
 
     const sessionId = this.getSessionId();
     if (!sessionId) {
       this.exportError = 'No active session. Upload an RFP first.';
-      this.exporting = false;
       return;
     }
 
@@ -158,12 +155,10 @@ export class ReportComponent {
     apiCall.subscribe({
       next: (blob) => {
         this.downloadBlob(blob, `rfp_report.${format}`);
-        this.exporting = false;
       },
       error: (err) => {
         console.error(err);
         this.exportError = 'Export failed. Upload an RFP first.';
-        this.exporting = false;
       },
     });
   }
@@ -187,12 +182,11 @@ export class ReportComponent {
 
     // Classification
     if (this.classification) {
-      parts.push('Classification');
+      parts.push('Solicitation Classification');
 
       parts.push(`Solicitation Type: ${this.classification.solicitation_type || 'Unknown'}`);
-
+      parts.push(`Confidence: ${this.classification.confidence ?? 'N/A'}`);
       parts.push(`Reason: ${this.classification.reason || ''}`);
-
       parts.push('');
     }
 
@@ -202,6 +196,7 @@ export class ReportComponent {
 
       if (this.proposalStrategy.bid_recommendation) {
         parts.push(`Bid Recommendation: ${this.proposalStrategy.bid_recommendation}`);
+        parts.push('');
       }
 
       const appendStrategyList = (title: string, items: string[]) => {
@@ -215,7 +210,7 @@ export class ReportComponent {
 
         parts.push('');
       };
-
+      appendStrategyList('Response Strategy', this.proposalStrategy.response_strategy);
       appendStrategyList('Win Themes', this.proposalStrategy.win_themes);
 
       appendStrategyList('Risks', this.proposalStrategy.risks);
@@ -223,6 +218,35 @@ export class ReportComponent {
       appendStrategyList('Critical Compliance Items', this.proposalStrategy.critical_items);
     }
 
+    if (this.complianceMatrix?.length) {
+      parts.push('Compliance Matrix');
+
+      this.complianceMatrix.forEach((item) => {
+        parts.push(`${item.requirement} | ${item.category} | ${item.status} | Page ${item.page}`);
+      });
+
+      parts.push('');
+    }
+    
+    if (this.structuredData) {
+      parts.push('Structured Data');
+
+      Object.entries(this.structuredData).forEach(([key, value]) => {
+        if (!value) return;
+
+        parts.push(key);
+
+        if (Array.isArray(value)) {
+          value.forEach((item) => {
+            parts.push(`• ${JSON.stringify(item)}`);
+          });
+        } else {
+          parts.push(String(value));
+        }
+
+        parts.push('');
+      });
+    }
     const execSummary = this.getSummaryText();
 
     if (execSummary) {
@@ -230,6 +254,34 @@ export class ReportComponent {
       parts.push(execSummary);
       parts.push('');
     }
+
+    const appendList = (title: string, items: any[] | undefined) => {
+      if (!items?.length) return;
+
+      parts.push(title);
+
+      items.forEach((item) => {
+        const line = this.formatItem(item);
+
+        if (line) {
+          parts.push(`• ${line}`);
+        }
+      });
+
+      parts.push('');
+    };
+
+    appendList('Scope of Work', this.latestReport?.scope_of_work);
+
+    appendList('Deliverables', this.latestReport?.deliverables);
+
+    appendList('Objectives', this.latestReport?.objectives);
+
+    appendList('Deadlines', this.latestReport?.deadlines);
+
+    appendList('Staffing Requirements', this.latestReport?.staffing_requirements);
+
+    appendList('Compliance Items', this.latestReport?.compliance_items);
 
     return this.cleanText(parts.join('\n'));
   }

@@ -18,16 +18,15 @@
   <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
     <button
       class="upload-action inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium shadow-soft transition hover:brightness-105 active:scale-[0.99] disabled:opacity-60"
-      [disabled]="exporting"
+      [disabled]="!latestReport"
       (click)="downloadDocx()"
     >
-      <span *ngIf="!exporting">Download DOCX</span>
-      <span *ngIf="exporting">Exporting…</span>
+      Download DOCX
     </button>
 
     <button
       class="upload-action inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium shadow-soft transition hover:brightness-105 active:scale-[0.99] disabled:opacity-60"
-      [disabled]="exporting"
+      [disabled]="!latestReport"
       (click)="downloadPdf()"
     >
       Download PDF
