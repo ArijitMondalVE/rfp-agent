@@ -192,18 +192,21 @@ export class AppComponent implements OnDestroy, OnInit {
     this.cdr.markForCheck();
   }
 
-  private getOrCreateSessionId(): string {
+  getOrCreateSessionId(): string {
+    // Use sessionStorage so it resets when the user refreshes the page.
+    // This prevents "cross-user"/"cross-refresh" leakage of document/session history.
     const key = 'rfp_session_id';
 
-    let sessionId = localStorage.getItem(key);
+    let sessionId = sessionStorage.getItem(key);
 
     if (!sessionId) {
       sessionId = crypto.randomUUID();
-      localStorage.setItem(key, sessionId);
+      sessionStorage.setItem(key, sessionId);
     }
 
     return sessionId;
   }
+
 
   recentDocuments: RecentDoc[] = [];
 
@@ -261,9 +264,11 @@ export class AppComponent implements OnDestroy, OnInit {
     this.api.getDocument(lastDocId).subscribe({
       next: (response: any) => {
         if (response?.session_id) {
-          localStorage.setItem('rfp_session_id', response.session_id);
+          // Keep session isolated per refresh using sessionStorage.
+          sessionStorage.setItem('rfp_session_id', response.session_id);
           this.activeSessionId = response.session_id;
         }
+
 
         if (this.reportComp) {
           this.reportComp.setReportFromUploadResponse({
