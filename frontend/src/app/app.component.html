@@ -132,13 +132,14 @@
 
             <div
               *ngFor="let doc of recentDocuments"
+              (click)="openDocument(doc)"
               class="group rounded-xl border border-white/10 bg-slate-800/50 p-3 hover:bg-slate-800 transition cursor-pointer relative"
             >
               <button
                 class="pdf-history-delete-btn"
                 title="Delete PDF from history"
                 aria-label="Delete PDF from history"
-                (click)="deleteRecentDocument(doc.filename, $event)"
+                (click)="deleteRecentDocument(doc, $event)"
               >
                 ×
               </button>

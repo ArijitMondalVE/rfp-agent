@@ -19,6 +19,7 @@ import { PdfDeleteModalComponent } from './components/pdf-delete-modal/pdf-delet
 import { ConfirmDeleteModalComponent } from './components/confirm-delete-modal/confirm-delete-modal.component';
 
 type RecentDoc = {
+  id?: number;
   filename: string;
   uploadedAt: number;
 };
@@ -219,6 +220,7 @@ export class AppComponent implements OnDestroy, OnInit {
   uploadSectionOpen = true;
 
   private readonly STORAGE_KEY = 'rfp_recent_documents_v1';
+  private readonly LAST_OPENED_DOC_ID_KEY = 'rfp_last_opened_document_id_v1';
 
   constructor(
     private cdr: ChangeDetectorRef,
@@ -244,45 +246,89 @@ export class AppComponent implements OnDestroy, OnInit {
         this.reportSidebarCollapsed = false;
         this.cdr.markForCheck();
       }
+
+      // Restore last opened document/report/chat on refresh
+      this.restoreLastOpenedDocument();
     }
   }
+
+  private restoreLastOpenedDocument(): void {
+    const raw = localStorage.getItem(this.LAST_OPENED_DOC_ID_KEY);
+    const lastDocId = raw ? Number(raw) : NaN;
+
+    if (!lastDocId || Number.isNaN(lastDocId) || lastDocId <= 0) return;
+
+    this.api.getDocument(lastDocId).subscribe({
+      next: (response: any) => {
+        if (response?.session_id) {
+          localStorage.setItem('rfp_session_id', response.session_id);
+          this.activeSessionId = response.session_id;
+        }
+
+        if (this.reportComp) {
+          this.reportComp.setReportFromUploadResponse({
+            report: response.report,
+            structured_data: response.report?.structured_data,
+            compliance_matrix: response.report?.compliance_matrix,
+            classification: response.report?.classification,
+            proposal_strategy: response.report?.proposal_strategy,
+          });
+        }
+
+        if (this.chatWindow) {
+          this.chatWindow.loadChats();
+        }
+
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        // If doc is gone, ignore and keep user at default state
+      },
+    });
+  }
+
 
   ngOnDestroy(): void {}
 
   private loadRecentDocuments() {
-    // First load from localStorage cache
-    try {
-      const raw = localStorage.getItem(this.STORAGE_KEY);
-      if (!raw) return;
+    // Try backend first (source of truth)
 
-      const parsed = JSON.parse(raw) as RecentDoc[];
-      if (!Array.isArray(parsed)) return;
-
-      this.recentDocuments = parsed
-        .filter((d) => d && typeof d.filename === 'string' && typeof d.uploadedAt === 'number')
-        .sort((a, b) => b.uploadedAt - a.uploadedAt)
-        .slice(0, 10);
-    } catch {
-      // ignore
-    }
-
-    // Then fetch from backend to get actual persisted documents
     this.api.getUploadedDocuments().subscribe({
       next: (res: any) => {
         const docs = res?.documents || res || [];
-        if (Array.isArray(docs) && docs.length > 0) {
+
+        if (Array.isArray(docs)) {
           this.recentDocuments = docs
             .map((d: any) => ({
+              id: d.id,
+
               filename: d.filename || d.name || String(d),
-              uploadedAt: d.uploadedAt || d.created_at || Date.now(),
+
+              uploadedAt: d.created_at ? new Date(d.created_at).getTime() : Date.now(),
             }))
             .sort((a: RecentDoc, b: RecentDoc) => b.uploadedAt - a.uploadedAt)
             .slice(0, 10);
+
           this.persistRecentDocuments();
         }
       },
+
       error: () => {
-        // ignore - keep local cache
+        // Fallback to cache
+
+        try {
+          const raw = localStorage.getItem(this.STORAGE_KEY);
+
+          if (!raw) return;
+
+          const parsed = JSON.parse(raw);
+
+          if (!Array.isArray(parsed)) {
+            return;
+          }
+
+          this.recentDocuments = parsed.filter((d: any) => d.id);
+        } catch {}
       },
     });
   }
@@ -305,7 +351,7 @@ export class AppComponent implements OnDestroy, OnInit {
     if (existingIndex >= 0) {
       this.recentDocuments = [
         ...this.recentDocuments.slice(0, existingIndex),
-        { filename, uploadedAt: now },
+        { id: result?.document_id, filename, uploadedAt: now },
         ...this.recentDocuments.slice(existingIndex + 1),
       ].sort((a, b) => b.uploadedAt - a.uploadedAt);
     } else {
@@ -322,13 +368,59 @@ export class AppComponent implements OnDestroy, OnInit {
     }
   }
 
-  deleteRecentDocument(filename: string, event: Event) {
+  openDocument(doc: RecentDoc) {
+    if (!doc.id) {
+      console.error('Document id missing');
+      return;
+    }
+
+    // Persist last opened document so refresh restores report/chat
+    try {
+      localStorage.setItem(this.LAST_OPENED_DOC_ID_KEY, String(doc.id));
+    } catch {}
+
+    this.api.getDocument(doc.id).subscribe({
+      next: (response: any) => {
+        console.log('DOCUMENT LOADED:', response);
+
+        localStorage.setItem('rfp_session_id', response.session_id);
+
+        this.activeSessionId = response.session_id;
+
+        if (this.reportComp) {
+          this.reportComp.setReportFromUploadResponse({
+            report: response.report,
+
+            structured_data: response.report?.structured_data,
+
+            compliance_matrix: response.report?.compliance_matrix,
+
+            classification: response.report?.classification,
+
+            proposal_strategy: response.report?.proposal_strategy,
+          });
+        }
+
+        if (this.chatWindow) {
+          this.chatWindow.loadChats();
+        }
+
+        this.cdr.detectChanges();
+      },
+
+      error: (err) => {
+        console.error(err);
+      },
+    });
+  }
+
+  deleteRecentDocument(doc: RecentDoc, event: Event) {
     event.stopPropagation();
 
-    if (!filename) return;
+    if (!doc.filename) return;
 
     // Keep PDF delete confirmation consistent with chat history (custom modal)
-    this.pdfToDelete = filename;
+    this.pdfToDelete = doc.filename;
     this.showPdfDeleteConfirm = true;
     this.cdr.detectChanges();
     // Actual delete happens in confirmPdfDelete()

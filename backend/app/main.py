@@ -8,6 +8,8 @@ from app.db.database import Base
 from app.models.user import User
 from app.models.conversation import Conversation
 from app.models.report import Report
+from app.db.document_store import init_db
+from app.db.chunk_store import init_chunk_table
 
 app = FastAPI(title="RFP Intelligence Agent")
 
@@ -53,7 +55,8 @@ app.add_middleware(
 
 
 app.include_router(rfp_router)
-
+init_db()
+init_chunk_table()
 
 @app.get("/")
 def home():

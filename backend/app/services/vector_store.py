@@ -25,10 +25,7 @@ def get_embeddings():
 # CREATE VECTOR STORE
 # -----------------------------------
 def create_vector_store(session_id: str, chunks=None):
-    """
-    Create or replace the Chroma vector store
-    for a specific session.
-    """
+    """Create or replace the Chroma vector store for a specific session."""
 
     if chunks is None:
         raise ValueError("create_vector_store requires 'chunks'")
@@ -36,7 +33,6 @@ def create_vector_store(session_id: str, chunks=None):
     collection_name = f"rfp_collection_{session_id}"
     persist_path = str(Path("chroma_db") / session_id)
 
-    # Create persistent client
     client = chromadb.PersistentClient(path=persist_path)
 
     # Remove old collection if it exists
@@ -45,17 +41,35 @@ def create_vector_store(session_id: str, chunks=None):
     except Exception:
         pass
 
-    # Create vector store
     store = Chroma(
         client=client,
         collection_name=collection_name,
         embedding_function=get_embeddings(),
     )
 
-  # Add document chunks with metadata
     store.add_documents(chunks)
 
     return store
+
+
+def delete_vector_store_for_session(session_id: str) -> None:
+    """Permanently delete the Chroma collection for the given session_id."""
+
+    collection_name = f"rfp_collection_{session_id}"
+    persist_path = str(Path("chroma_db") / session_id)
+
+    # If there's no persisted data, nothing to do.
+    if not Path(persist_path).exists():
+        return
+
+    client = chromadb.PersistentClient(path=persist_path)
+
+    try:
+        client.delete_collection(name=collection_name)
+    except Exception:
+        # Collection might not exist; ignore.
+        pass
+
 
 
 # -----------------------------------

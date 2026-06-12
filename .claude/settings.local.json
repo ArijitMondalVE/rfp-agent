@@ -12,7 +12,9 @@
       "Bash(git add backend/app/main.py backend/app/models/report.py)",
       "Bash(git commit:*)",
       "Bash(git push origin main)",
-      "Bash(git add frontend/src/app/components/chat-window/chat-window.ts)"
+      "Bash(git add frontend/src/app/components/chat-window/chat-window.ts)",
+      "Bash(curl -s http://localhost:8000/documents)",
+      "Bash(.venv/Scripts/python -c \"from app.main import app; print\\(''OK''\\)\")"
     ]
   }
 }
