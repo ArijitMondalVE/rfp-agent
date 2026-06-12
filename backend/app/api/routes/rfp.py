@@ -338,6 +338,9 @@ async def delete_document(document_id: int):
     if not document:
         return {"error": "Document not found"}
 
+    # We need session_id before deleting DB rows.
+    session_id = document.get("session_id")
+
     pdf_path = Path(document["pdf_path"])
 
     if pdf_path.exists():
@@ -346,7 +349,15 @@ async def delete_document(document_id: int):
     delete_chunks(document_id)
     delete_document_db(document_id)
 
+    # Permanently delete vector store so deleted PDFs never re-appear after refresh.
+    try:
+        if session_id:
+            delete_vector_store_for_session(str(session_id))
+    except Exception:
+        pass
+
     return {"message": "Document deleted"}
+
 
 
 # -----------------------------------
