@@ -410,30 +410,112 @@ def generate_document_summary(text: str):
     shortened_text = text[:10000]
 
     prompt = f"""
-Generate a professional document summary.
+You are an expert Government Procurement and RFP Analyst.
 
-Structure:
+Generate a detailed procurement-focused executive summary.
+
+Extract ONLY information explicitly present in the document.
+
+If information is unavailable, write:
+
+Not specified in the RFP
+
+REQUIRED FORMAT
 
 Executive Summary
 
-Main Topic
+• Provide a detailed overview of the solicitation
+• Explain the purpose of the procurement
+• Describe what the agency is seeking
+• Highlight major requirements and expectations
 
-Objectives
+Solicitation Overview
 
-Important Points
+• Solicitation Type
+• Solicitation Number
+• Agency
+• Submission Deadline
+• Contract Term
 
-Requirements / Deliverables
+Scope of Work
+
+• Major services requested
+• Deliverables required
+• Objectives of the project
+
+Submission Requirements
+
+• Submission method
+• Submission location
+• Required formats
+• Important submission instructions
+
+Mandatory Forms
+
+• List all required forms
+
+Evaluation Criteria
+
+• List evaluation criteria and weights if available
+
+Insurance Requirements
+
+• Required insurance coverages
+• Coverage limits
+
+Bond Requirements
+
+• Bid bonds
+• Performance bonds
+• Payment bonds
+
+Licensing Requirements
+
+• Professional licenses
+• Certifications
+• Registrations
+
+Subcontractor Requirements
+
+• Small business requirements
+• MBE/WBE requirements
+• Subcontracting restrictions
+
+Contract Terms
+
+• Contract duration
+• Renewal options
+• Termination clauses
+• Important contractual obligations
+
+Compliance Requirements
+
+• Legal requirements
+• Regulatory requirements
+• Certifications
+• Affidavits
+
+Risks and Critical Considerations
+
+• High-risk requirements
+• Compliance risks
+• Potential proposal challenges
 
 Important Insights
 
-Rules:
+• Key observations for proposal teams
+• Notable opportunities
+• Important strategic considerations
 
-- Do NOT use markdown headings
-- Do NOT use #, ##, ###
-- Use the bullet character •
-- Put each bullet on a separate line
-- Leave one blank line between sections
-- Keep the summary concise
+RULES
+
+- Use bullet character •
+- No markdown (#, ##, ###)
+- Do not repeat information across sections
+- Keep information grouped logically
+- Focus on procurement-relevant content
+- Be detailed and informative
+- Do not invent information
 
 DOCUMENT:
 {shortened_text}
