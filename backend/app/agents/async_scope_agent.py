@@ -77,7 +77,7 @@ DOCUMENT TEXT:
             "role": "user",
             "content": prompt
         }
-    ]
+    ],
 )
     
 

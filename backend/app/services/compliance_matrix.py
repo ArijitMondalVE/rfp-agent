@@ -64,7 +64,7 @@ DOCUMENT:
                     "role": "user",
                     "content": prompt
                 }
-            ]
+            ],
         )
 
         content = response.choices[0].message.content.strip()

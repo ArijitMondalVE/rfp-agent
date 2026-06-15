@@ -9,7 +9,7 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 HF_TOKEN = os.getenv("HF_TOKEN")
 
 # Provider
-ACTIVE_PROVIDER = os.getenv("ACTIVE_PROVIDER", "groq")
+ACTIVE_PROVIDER = os.getenv("ACTIVE_PROVIDER", "openai")
 
 # Models
 MODEL_GROQ = os.getenv(
@@ -19,7 +19,7 @@ MODEL_GROQ = os.getenv(
 
 MODEL_OPENAI = os.getenv(
     "MODEL_OPENAI",
-    "gpt-5-mini"
+    "gpt-4o-mini"
 )
 
 

@@ -40,7 +40,7 @@ DOCUMENT:
                     "content": prompt
                 }
             ],
-            response_format={"type": "json_object"}
+            response_format={"type": "json_object"},
         )
 
         return json.loads(
