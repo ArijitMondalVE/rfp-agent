@@ -6,7 +6,6 @@ import { NgIf } from '@angular/common';
   selector: 'app-upload',
   standalone: true,
   imports: [NgIf],
-
   templateUrl: './upload.component.html',
 })
 export class UploadComponent {
@@ -38,7 +37,13 @@ export class UploadComponent {
     this.errorMessage = null;
     this.uploadResponse = null;
 
-    const sessionId = localStorage.getItem('rfp_session_id') || '';
+    // IMPORTANT:
+    // Use sessionStorage (per browser tab/device) to avoid cross-user/session leakage.
+    // Fallback to localStorage for legacy sessions.
+    const sessionId =
+      sessionStorage.getItem('rfp_session_id') ||
+      localStorage.getItem('rfp_session_id') ||
+      '';
 
     if (!sessionId) {
       this.errorMessage = 'No active session found. Please refresh the page.';
@@ -76,3 +81,4 @@ export class UploadComponent {
     });
   }
 }
+

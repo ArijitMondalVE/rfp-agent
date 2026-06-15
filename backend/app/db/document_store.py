@@ -120,7 +120,7 @@ def save_document(
 
 
 # ==========================
-# GET ALL DOCUMENTS
+# GET ALL DOCUMENTS (legacy - returns all)
 # ==========================
 
 
@@ -131,6 +131,7 @@ def get_save_documents():
     cursor = conn.execute("""
         SELECT
             id,
+            session_id,
             filename,
             created_at
         FROM documents
@@ -141,7 +142,34 @@ def get_save_documents():
 
     conn.close()
 
-    return [{"id": row[0], "filename": row[1], "created_at": row[2]} for row in rows]
+    return [{"id": row[0], "session_id": row[1], "filename": row[2], "created_at": row[3]} for row in rows]
+
+
+# ==========================
+# GET DOCUMENTS BY SESSION
+# ==========================
+
+
+def get_documents_by_session(session_id: str):
+
+    conn = sqlite3.connect(DB_FILE)
+
+    cursor = conn.execute("""
+        SELECT
+            id,
+            session_id,
+            filename,
+            created_at
+        FROM documents
+        WHERE session_id = ?
+        ORDER BY created_at DESC
+    """, (session_id,))
+
+    rows = cursor.fetchall()
+
+    conn.close()
+
+    return [{"id": row[0], "session_id": row[1], "filename": row[2], "created_at": row[3]} for row in rows]
 
 
 # ==========================
@@ -215,6 +243,27 @@ def delete_document(document_id):
                 WHERE id = ?
                 """,
                 (document_id,),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+    _with_retry(_do_delete)
+
+
+# ==========================
+# DELETE DOCUMENTS BY SESSION
+# ==========================
+
+
+def delete_documents_by_session(session_id: str):
+
+    def _do_delete():
+        conn = _connect()
+        try:
+            conn.execute(
+                "DELETE FROM documents WHERE session_id = ?",
+                (session_id,),
             )
             conn.commit()
         finally:

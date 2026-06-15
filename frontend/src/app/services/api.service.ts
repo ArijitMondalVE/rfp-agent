@@ -101,7 +101,12 @@ export class ApiService {
     return this.http.delete(`${this.baseUrl}/clear-all-chats`);
   }
 
-  getUploadedDocuments() {
+  getUploadedDocuments(sessionId?: string) {
+    if (sessionId) {
+      return this.http.get(`${this.baseUrl}/documents`, {
+        params: { session_id: sessionId },
+      });
+    }
     return this.http.get(`${this.baseUrl}/documents`);
   }
   getDocument(id: number) {
@@ -112,7 +117,12 @@ export class ApiService {
     return this.http.delete(`${this.baseUrl}/documents-by-filename/${encodeURIComponent(filename)}`);
   }
 
-  clearUploadedDocuments() {
+  clearUploadedDocuments(sessionId?: string) {
+    if (sessionId) {
+      return this.http.delete(`${this.baseUrl}/documents`, {
+        params: { session_id: sessionId },
+      });
+    }
     return this.http.delete(`${this.baseUrl}/documents`);
   }
 

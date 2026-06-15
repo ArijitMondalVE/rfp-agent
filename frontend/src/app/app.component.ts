@@ -297,8 +297,9 @@ export class AppComponent implements OnDestroy, OnInit {
 
   private loadRecentDocuments() {
     // Try backend first (source of truth)
+    const sessionId = this.getOrCreateSessionId();
 
-    this.api.getUploadedDocuments().subscribe({
+    this.api.getUploadedDocuments(sessionId).subscribe({
       next: (res: any) => {
         const docs = res?.documents || res || [];
 
@@ -479,7 +480,8 @@ export class AppComponent implements OnDestroy, OnInit {
     this.persistRecentDocuments();
     this.cdr.detectChanges();
 
-    this.api.clearUploadedDocuments().subscribe({
+    const sessionId = this.getOrCreateSessionId();
+    this.api.clearUploadedDocuments(sessionId).subscribe({
       next: () => {
         this.cdr.detectChanges();
       },

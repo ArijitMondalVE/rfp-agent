@@ -45,8 +45,10 @@ from app.db.document_store import save_document
 from app.db.document_store import (
     save_document,
     get_save_documents,
+    get_documents_by_session,
     get_document,
     delete_document as delete_document_db,
+    delete_documents_by_session,
 )
 from app.services.export_service import generate_docx_report, generate_pdf_report
 from app.services.context_memory import save_context
@@ -58,8 +60,6 @@ from app.services.solicitation_classifier import classify_solicitation
 from app.services.proposal_strategy import generate_strategy
 
 from langchain_core.documents import Document
-from app.db.document_store import get_save_documents 
-
 from app.db.chunk_store import save_chunks, get_chunks, delete_chunks
 import uuid
 
@@ -235,7 +235,9 @@ async def upload_rfp(session_id: str, file: UploadFile = File(...)):
 # Get Documents
 # -----------------------------------
 @router.get("/documents")
-async def get_documents():
+async def get_documents(session_id: str = ""):
+    if session_id:
+        return {"documents": get_documents_by_session(session_id)}
     return {"documents": get_save_documents()}
 
 
@@ -278,52 +280,58 @@ async def get_document_by_id(document_id: int):
 
 
 @router.delete("/documents")
-async def clear_documents():
-    """Clear all persisted PDF/document history.
+async def clear_documents(session_id: str = ""):
+    """Clear persisted PDF/document history. If session_id provided, only clear that session's docs."""
 
-    Important: the app persists data in multiple layers:
-      - PDF files on disk (uploads/)
-      - documents.db (documents table)
-      - documents.db (document_chunks table)
-      - Chroma vector store (chroma_db/* per session)
-
-    If we only delete files on disk, the frontend will re-fetch from DB/vector store
-    after refresh and show deleted documents again.
-    """
-
-    # 1) Delete PDF files on disk
+    # 1) Delete PDF files on disk (only matching session if session_id provided)
     uploads = Path("uploads")
     if uploads.exists():
         for p in uploads.iterdir():
             if p.is_file() and p.suffix.lower() == ".pdf":
+                # If session_id provided, only delete files for that session
+                if session_id and session_id not in p.name:
+                    continue
                 p.unlink(missing_ok=True)
 
-    # 2) Wipe DB rows (documents + chunks)
-    # documents.db is used by document_store/chunk_store; keep sqlite operations here
-    # minimal and defensive.
-    try:
-        import sqlite3
-
-        # documents.db is in project root (same as document_store.py DB_FILE)
-        conn = sqlite3.connect("documents.db", timeout=5.0)
+    # 2) Wipe DB rows (documents + chunks) - session-specific if session_id provided
+    if session_id:
+        # Delete only this session's docs
+        delete_documents_by_session(session_id)
         try:
-            conn.execute("PRAGMA journal_mode=WAL")
-            conn.execute("DELETE FROM document_chunks")
-            conn.execute("DELETE FROM documents")
-            conn.commit()
-        finally:
-            conn.close()
-    except Exception:
-        # If DB wipe fails, vector store wipe can still reduce re-appearance.
-        pass
+            from app.db.chunk_store import delete_chunks
+            import sqlite3
+            conn = sqlite3.connect("documents.db", timeout=5.0)
+            try:
+                conn.execute("DELETE FROM document_chunks WHERE document_id IN (SELECT id FROM documents WHERE session_id = ?)", (session_id,))
+                conn.commit()
+            finally:
+                conn.close()
+        except Exception:
+            pass
+    else:
+        # Clear everything (legacy behavior)
+        try:
+            import sqlite3
+            conn = sqlite3.connect("documents.db", timeout=5.0)
+            try:
+                conn.execute("PRAGMA journal_mode=WAL")
+                conn.execute("DELETE FROM document_chunks")
+                conn.execute("DELETE FROM documents")
+                conn.commit()
+            finally:
+                conn.close()
+        except Exception:
+            pass
 
-    # 3) Wipe all Chroma persisted collections under chroma_db/*
-    # (Simplest + most correct: remove persisted directories.)
+    # 3) Wipe Chroma persisted collections - session-specific if session_id provided
     chroma_root = Path("chroma_db")
     if chroma_root.exists():
         for child in chroma_root.iterdir():
-            # Session persistence folders are usually UUID directories
             if child.is_dir():
+                if session_id:
+                    # Only delete if folder matches session_id
+                    if session_id not in child.name:
+                        continue
                 shutil.rmtree(child, ignore_errors=True)
 
     return {"message": "PDF history cleared"}
