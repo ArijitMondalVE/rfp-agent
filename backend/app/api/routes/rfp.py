@@ -78,8 +78,21 @@ Path(UPLOAD_DIR).mkdir(exist_ok=True)
 # -----------------------------------
 # Upload + Process RFP
 # -----------------------------------
+ALLOWED_EXTENSIONS = {".pdf", ".doc", ".docx"}
+
+
 @router.post("/upload")
 async def upload_rfp(session_id: str, file: UploadFile = File(...)):
+    # Validate supported formats early
+    filename = (file.filename or "").strip()
+    ext = Path(filename).suffix.lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        return {
+            "error": "Unsupported format. Please upload a PDF or DOC/DOCX file.",
+            "unsupported_filename": filename,
+            "unsupported_extension": ext,
+        }, 400
+
     # Save uploaded file
     unique_name = f"{uuid.uuid4()}_{file.filename}"
 

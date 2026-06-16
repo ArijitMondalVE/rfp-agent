@@ -27,7 +27,7 @@ export class UploadComponent {
 
   uploadFile() {
     if (!this.selectedFile) {
-      this.errorMessage = 'Please select a PDF file.';
+      this.errorMessage = 'Please select a PDF/DOC/DOCX file.';
       return;
     }
 
@@ -63,7 +63,8 @@ export class UploadComponent {
       error: (err) => {
         console.error(err);
         this.uploadResponse = null;
-        this.errorMessage = 'Upload failed. Please try again.';
+        // Backend may return { error: '...' }
+        this.errorMessage = err?.error?.error || 'Upload failed. Please try again.';
         this.isUploading = false;
       },
       complete: () => {
