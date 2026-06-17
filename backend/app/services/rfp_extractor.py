@@ -110,7 +110,11 @@ DOCUMENT:
 
         content = response.choices[0].message.content.strip()
 
-        return json.loads(content)
+        result = json.loads(content)
+        # Ensure result is a dict before returning
+        if not isinstance(result, dict):
+            return {"error": "Invalid response format", "details": "Response was not a JSON object"}
+        return result
 
     except Exception as e:
 

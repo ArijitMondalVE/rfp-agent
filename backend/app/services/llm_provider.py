@@ -22,7 +22,9 @@ def get_client(provider: str = None):
 
 # Default clients
 groq_client = Groq(api_key=GROQ_API_KEY, timeout=120)
-openai_client = OpenAI(api_key=OPENAI_API_KEY)
+# NOTE: OpenAI SDK uses httpx; pass a default request timeout to prevent hangs.
+openai_client = OpenAI(api_key=OPENAI_API_KEY, timeout=180)
+
 client = get_client()
 
 

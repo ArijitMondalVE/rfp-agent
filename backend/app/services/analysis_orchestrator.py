@@ -24,13 +24,21 @@ def run_analysis(text):
             text
         )
 
+        # Hard timeouts to prevent background jobs from hanging forever
+        # (LLM calls are network-bound; we cap wall time.)
+        TIMEOUT_S = 180
+
+        def _wait(fut, name: str):
+            try:
+                return fut.result(timeout=TIMEOUT_S)
+            except Exception as e:
+                # Always return a safe fallback so the upload job can finish gracefully.
+                print(f"[Analysis] {name} failed/timed out: {e}")
+                return {"status": "failed", "message": str(e)}
+
         return {
-            "classification":
-                classification_future.result(),
-
-            "strategy":
-                strategy_future.result(),
-
-            "compliance":
-                compliance_future.result()
+            "classification": _wait(classification_future, "classification"),
+            "strategy": _wait(strategy_future, "strategy"),
+            "compliance": _wait(compliance_future, "compliance"),
         }
+

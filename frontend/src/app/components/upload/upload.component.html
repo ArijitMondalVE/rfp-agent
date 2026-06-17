@@ -27,7 +27,16 @@
           </span>
         </ng-template>
       </button>
+
+      <button
+        *ngIf="isUploading"
+        class="cancel-upload-action inline-flex w-full items-center justify-center rounded-lg px-4 py-2 font-medium shadow-soft transition hover:brightness-105 active:scale-[0.99] sm:w-auto disabled:opacity-60 border border-white/10 bg-rose-600/20 text-rose-200"
+        (click)="cancelUpload()"
+      >
+        Cancel Upload
+      </button>
     </div>
+
 
     <p class="upload-hint mt-3 text-xs">Tip: uploads are processed server-side with RAG extraction.</p>
 

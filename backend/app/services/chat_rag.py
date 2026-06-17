@@ -511,11 +511,12 @@ RULES
 
 - Use bullet character •
 - No markdown (#, ##, ###)
-- Do not repeat information across sections
+- Do NOT repeat information across sections
 - Keep information grouped logically
 - Focus on procurement-relevant content
 - Be detailed and informative
 - Do not invent information
+- 
 
 DOCUMENT:
 {shortened_text}

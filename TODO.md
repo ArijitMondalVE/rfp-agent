@@ -1,11 +1,11 @@
-# TODO - Refresh persistence (PDF history + past report)
+# TODO - Cancel upload + stop embedding
 
-- [x] Inspect current document/session restore flow on frontend (`AppComponent` + `ChatWindow` + `ChatComponent`).
-- [x] Implement persistence of “last opened document” (doc id + session id) in `AppComponent`.
-
-- [ ] On `AppComponent.ngOnInit()`, restore last opened document by calling `GET /documents/{id}` and reusing existing `openDocument` logic.
-- [ ] Ensure `ChatWindow` / `ChatComponent` load chat history for restored `session_id`.
-- [x] Verify refresh behavior: after upload/open, hard refresh shows past report + chat without re-upload processing.
-
-
+- [ ] Implement upload job tracking in DB (`upload_jobs` table + helpers) in `backend/app/db/document_store.py`
+- [ ] Refactor `/upload` to create background job and return immediately with `job_id` + `session_id`
+- [ ] Add background worker that checks cancel flag before creating vector store and before saving doc/chunks/report
+- [ ] Add API endpoints:
+  - [ ] `POST /upload/{job_id}/cancel`
+  - [ ] `GET /upload/{job_id}`
+- [ ] Ensure cancelled jobs do not write embeddings/chunks/report, and delete temp uploaded file
+- [ ] Run quick python compile/import checks
 

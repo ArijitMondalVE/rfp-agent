@@ -34,4 +34,7 @@ def generate_response(
     if temperature:
         params["temperature"] = temperature
 
-    return openai_client.chat.completions.create(**params)
+    # OpenAI client call without a timeout can hang indefinitely.
+    # The OpenAI Python SDK supports httpx timeouts via the `timeout` kwarg.
+    # We keep it conservative for large prompts.
+    return openai_client.chat.completions.create(timeout=180, **params)

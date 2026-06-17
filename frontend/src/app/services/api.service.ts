@@ -22,6 +22,15 @@ export class ApiService {
     );
   }
 
+  cancelUpload(jobId: string) {
+    return this.http.post(`${this.baseUrl}/upload/${jobId}/cancel`, {});
+  }
+
+  getUploadJobStatus(jobId: string) {
+    return this.http.get(`${this.baseUrl}/upload/${jobId}`);
+  }
+
+
   chatWithRfp(sessionId: string, question: string) {
     console.log('CHAT SESSION:', sessionId);
     return this.http.get(`${this.baseUrl}/chat`, {

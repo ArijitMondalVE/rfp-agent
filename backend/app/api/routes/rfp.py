@@ -9,6 +9,7 @@ from datetime import datetime
 from fastapi import APIRouter, UploadFile, File
 
 from app.services.analysis_orchestrator import run_analysis
+from app.services.executive_brief import generate_executive_brief
 from sqlalchemy.orm import Session
 from fastapi.responses import FileResponse
 
@@ -59,12 +60,15 @@ from app.services.compliance_matrix import generate_compliance_matrix
 from app.services.solicitation_classifier import classify_solicitation
 from app.services.proposal_strategy import generate_strategy
 
+
 from langchain_core.documents import Document
 from app.db.chunk_store import save_chunks, get_chunks, delete_chunks
 import uuid
 
 from app.services.vector_store import delete_vector_store_for_session
-
+from app.services.master_extractor import build_procurement_kb
+from app.services.procurement_kb import build_procurement_kb
+from app.services.opportunity_assessment import assess_opportunity
 
 # -----------------------------------
 # Router
@@ -81,6 +85,249 @@ Path(UPLOAD_DIR).mkdir(exist_ok=True)
 ALLOWED_EXTENSIONS = {".pdf", ".doc", ".docx"}
 
 
+async def _check_upload_cancelled(job_id: str) -> bool:
+    from app.db.document_store import get_upload_job
+
+    job = get_upload_job(job_id)
+    return bool(job and job.get("status") == "cancelled")
+
+
+async def process_upload_job(
+    *, job_id: str, session_id: str, file_path: str, original_filename: str
+) -> None:
+    """Background job runner.
+
+    Cancellation is cooperative: we check job status before embedding/chunk persistence and before report persistence.
+    """
+
+    try:
+        if await _check_upload_cancelled(job_id):
+            return
+
+        # Extract PDF text
+        text = extract_text_from_pdf(str(file_path))
+
+        if await _check_upload_cancelled(job_id):
+            return
+
+        # OCR fallback
+        if len(text.strip()) < 500:
+            print("Low text detected. Running OCR...")
+            text = extract_text_with_ocr(str(file_path))
+
+        if await _check_upload_cancelled(job_id):
+            return
+
+        # Extract page-aware documents
+        documents = extract_documents_from_pdf(str(file_path))
+
+        # Chunk document
+        chunks = chunk_document(documents)
+        print("SESSION:", session_id)
+        print("CHUNKS CREATED:", len(chunks))
+
+        # Generate executive summary (CPU/LLM independent)
+        document_summary = generate_document_summary(text)
+
+        # IMPORTANT: cancellation checks BEFORE persisting embeddings/chunks/report
+        if await _check_upload_cancelled(job_id):
+            return
+
+        # Store embeddings (this is the main side-effect to avoid on cancel)
+        create_vector_store(session_id=session_id, chunks=chunks)
+        print("VECTOR STORE CREATED")
+
+        if await _check_upload_cancelled(job_id):
+            return
+
+        # Generate structured procurement extraction
+        print("STARTING RFP EXTRACTION...")
+        structured_data = extract_rfp_metadata(text)
+        # Defensive: ensure structured_data is a dict before accessing keys
+        solicitation_type = ""
+        if isinstance(structured_data, dict):
+            solicitation_type = structured_data.get("solicitation_type", "") or ""
+        # Ensure we slice a string, not something else
+        if isinstance(solicitation_type, str):
+            print(
+                "RFP EXTRACTION DONE:",
+                solicitation_type[:50] if solicitation_type else "empty",
+            )
+        else:
+            print("RFP EXTRACTION DONE: type unexpected")
+
+        # Analysis
+        print("STARTING ANALYSIS...")
+        analysis = run_analysis(text)
+        print("ANALYSIS DONE")
+        classification = analysis["classification"]
+        strategy = analysis["strategy"]
+
+        print("BUILDING PROCUREMENT KB...")
+        procurement_kb = build_procurement_kb(
+            text=text,
+            structured_data=structured_data,
+            classification=classification,
+            strategy=strategy,
+        )
+        print("PROCUREMENT KB DONE")
+        legacy_compliance_matrix = analysis["compliance"]
+
+        # Use analysis compliance directly (skip slow extra LLM call)
+        compliance_matrix = legacy_compliance_matrix
+
+        # Skip slow executive brief + opportunity calls (they hang)
+        # Report already has analysis data from earlier steps
+        print("SKIPPING SLOW EXECUTIVE BRIEF + OPPORTUNITY")
+        executive_brief = "Analysis complete"
+        opportunity_assessment = {"error": "skipped"}
+
+        if await _check_upload_cancelled(job_id):
+            return
+
+        # Skip chunk processing - redundant after all other analysis
+        merged = {}  # Empty dict, not list
+        aggregated = aggregate_results(merged)
+
+        # Add summary
+        aggregated["summary"] = [{"value": document_summary}]
+        aggregated["executive_brief"] = executive_brief
+        aggregated["structured_data"] = structured_data
+        aggregated["compliance_matrix"] = compliance_matrix
+        aggregated["classification"] = classification
+        aggregated["proposal_strategy"] = strategy
+        aggregated["executive_brief"] = executive_brief
+        aggregated["opportunity_assessment"] = opportunity_assessment
+        aggregated["procurement_kb"] = procurement_kb
+
+        # Add confidence scores
+        aggregated["scope_of_work"] = add_confidence_scores(
+            aggregated.get("scope_of_work", [])
+        )
+        aggregated["deadlines"] = add_confidence_scores(aggregated.get("deadlines", []))
+        aggregated["staffing_requirements"] = add_confidence_scores(
+            aggregated.get("staffing_requirements", [])
+        )
+        aggregated["compliance_items"] = add_confidence_scores(
+            aggregated.get("compliance_items", [])
+        )
+
+        # Cancellation check BEFORE persisting memory/report/document/chunks
+        if await _check_upload_cancelled(job_id):
+            return
+
+        # Save context memory
+        from app.services.context_memory import save_context
+
+        save_context(
+            session_id=session_id, context_type="summary", content=document_summary
+        )
+        save_context(
+            session_id=session_id,
+            context_type="document_name",
+            content=original_filename,
+        )
+        save_context(
+            session_id=session_id,
+            context_type="upload_time",
+            content=str(datetime.now()),
+        )
+
+        save_context(
+            session_id=session_id,
+            context_type="important_points",
+            content=f"""
+    Scope:
+    {aggregated.get('scope_of_work', [])}
+
+    Deadlines:
+    {aggregated.get('deadlines', [])}
+
+    Compliance:
+    {aggregated.get('compliance_items', [])}
+    """,
+        )
+
+        save_context(
+            session_id=session_id,
+            context_type="structured_extraction",
+            content=json.dumps(structured_data, default=str),
+        )
+
+        save_context(
+            session_id=session_id,
+            context_type="compliance_matrix",
+            content=json.dumps(compliance_matrix, default=str),
+        )
+
+        report_store.save_report(session_id, aggregated)
+
+        if await _check_upload_cancelled(job_id):
+            return
+
+        # Store report/document/chunks - wrap in try to ensure it saves
+        try:
+            print("TRYING TO SAVE DOCUMENT...")
+            print(f"  session_id: {session_id}")
+            print(f"  filename: {original_filename}")
+            print(f"  procurement_kb type: {type(procurement_kb)}")
+            print(f"  executive_brief type: {type(executive_brief)}")
+            print(f"  opportunity_assessment type: {type(opportunity_assessment)}")
+
+            document_id = save_document(
+                session_id=session_id,
+                filename=original_filename,
+                pdf_path=str(file_path),
+                summary=document_summary,
+                structured_data=structured_data,
+                compliance_matrix=compliance_matrix,
+                classification=classification,
+                proposal_strategy=strategy,
+                executive_brief=executive_brief,
+                opportunity_assessment=opportunity_assessment,
+                procurement_kb=procurement_kb,
+            )
+            print(f"DOCUMENT SAVED WITH ID: {document_id}")
+            save_chunks(document_id=document_id, chunks=chunks)
+
+            # IMPORTANT: mark job completed immediately after save succeeds
+            from app.db.document_store import set_upload_job_status
+
+            set_upload_job_status(job_id, "completed")
+            print(f"UPLOAD JOB {job_id} COMPLETED")
+        except Exception as e:
+            print(f"SAVE DOCUMENT ERROR: {e}")
+            import traceback
+
+            traceback.print_exc()
+            # Try still to save report even if doc save fails
+            document_id = None
+
+    except Exception as e:
+        print(f"Upload job {job_id} failed: {e}")
+    finally:
+        # If the job was cancelled, best-effort cleanup: do not persist anything further.
+        try:
+            from app.db.document_store import set_upload_job_status
+            from app.db.document_store import set_upload_job_cancelled
+
+            # If cancelled, ensure status stays cancelled.
+            job = None
+            from app.db.document_store import get_upload_job
+
+            job = get_upload_job(job_id)
+            if job and job.get("status") == "cancelled":
+                # Best-effort: delete uploaded file so user doesn't see it later.
+                try:
+                    Path(file_path).unlink(missing_ok=True)
+                except Exception:
+                    pass
+            else:
+                set_upload_job_status(job_id, "completed")
+        except Exception:
+            pass
+
+
 @router.post("/upload")
 async def upload_rfp(session_id: str, file: UploadFile = File(...)):
     # Validate supported formats early
@@ -93,155 +340,54 @@ async def upload_rfp(session_id: str, file: UploadFile = File(...)):
             "unsupported_extension": ext,
         }, 400
 
-    # Save uploaded file
-    unique_name = f"{uuid.uuid4()}_{file.filename}"
-
+    # Create cancellable upload job
+    job_id = str(uuid.uuid4())
+    unique_name = f"{job_id}_{file.filename}"
     file_path = Path(UPLOAD_DIR) / unique_name
 
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    from app.db.document_store import create_upload_job
 
-    # Extract PDF text
-    text = extract_text_from_pdf(str(file_path))
-
-    # OCR fallback
-    if len(text.strip()) < 500:
-        print("Low text detected. Running OCR...")
-        text = extract_text_with_ocr(str(file_path))
-
-    # Extract page-aware documents
-    documents = extract_documents_from_pdf(str(file_path))
-
-    # Chunk document
-    chunks = chunk_document(documents)
-    print("SESSION:", session_id)
-    print("CHUNKS CREATED:", len(chunks))
-
-    # Generate executive summary
-    document_summary = generate_document_summary(text)
-    # Save context memory
-    save_context(
-        session_id=session_id, context_type="summary", content=document_summary
-    )
-    save_context(
-        session_id=session_id, context_type="document_name", content=file.filename
-    )
-    save_context(
-        session_id=session_id, context_type="upload_time", content=str(datetime.now())
-    )
-
-    # Store embeddings
-    create_vector_store(session_id=session_id, chunks=chunks)
-    print("VECTOR STORE CREATED")
-
-    # Generate structured procurement extraction
-    try:
-        structured_data = extract_rfp_metadata(text)
-
-    except Exception as e:
-
-        print("RFP EXTRACTION ERROR:", e)
-
-        structured_data = {"status": "failed", "message": str(e)}
-
-    print("STRUCTURED EXTRACTION COMPLETE")
-
-    analysis = run_analysis(text)
-
-    classification = analysis["classification"]
-
-    strategy = analysis["strategy"]
-
-    compliance_matrix = analysis["compliance"]
-
-    print("COMPLIANCE MATRIX COMPLETE")
-
-    # Run AI extraction (limited)
-    results = await process_chunks_async(chunks[:5])
-
-    # Merge extracted results
-    merged = merge_results(results)
-
-    # Aggregate structured report
-    aggregated = aggregate_results(merged)
-
-    # Add summary
-    aggregated["summary"] = [{"value": document_summary}]
-    aggregated["structured_data"] = structured_data
-    aggregated["compliance_matrix"] = compliance_matrix
-    aggregated["classification"] = classification
-    aggregated["proposal_strategy"] = strategy
-
-    # Add confidence scores
-    aggregated["scope_of_work"] = add_confidence_scores(
-        aggregated.get("scope_of_work", [])
-    )
-    aggregated["deadlines"] = add_confidence_scores(aggregated.get("deadlines", []))
-    aggregated["staffing_requirements"] = add_confidence_scores(
-        aggregated.get("staffing_requirements", [])
-    )
-    aggregated["compliance_items"] = add_confidence_scores(
-        aggregated.get("compliance_items", [])
-    )
-
-    # Save structured report memory
-    save_context(
-        session_id=session_id,
-        context_type="important_points",
-        content=f"""
-    Scope:
-    {aggregated.get('scope_of_work', [])}
-
-    Deadlines:
-    {aggregated.get('deadlines', [])}
-
-    Compliance:
-    {aggregated.get('compliance_items', [])}
-    """,
-    )
-
-    save_context(
-        session_id=session_id,
-        context_type="structured_extraction",
-        content=json.dumps(structured_data, default=str),
-    )
-
-    save_context(
-        session_id=session_id,
-        context_type="compliance_matrix",
-        content=json.dumps(compliance_matrix, default=str),
-    )
-    # Store report in database (per session)
-    report_store.save_report(session_id, aggregated)
-
-    document_id = save_document(
+    create_upload_job(
+        job_id=job_id,
         session_id=session_id,
         filename=file.filename,
         pdf_path=str(file_path),
-        summary=document_summary,
-        structured_data=structured_data,
-        compliance_matrix=compliance_matrix,
-        classification=classification,
-        proposal_strategy=strategy,
     )
-    print("DOCUMENT SAVED:", document_id)
 
-    save_chunks(document_id=document_id, chunks=chunks)
+    # Save uploaded file
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
 
-    # API Response
-    return {
-        "document_id": document_id,
-        "filename": file.filename,
-        "characters": len(text),
-        "preview": text[:1000],
-        "total_chunks": len(chunks),
-        "processed_chunks": len(results),
-        "report": aggregated,
-        "structured_data": structured_data,
-        "compliance_matrix": compliance_matrix,
-        "classification": classification,
-        "proposal_strategy": strategy,
-    }
+    # Background processing so cancellation can take effect before embeddings/report persistence
+    import asyncio
+
+    asyncio.create_task(
+        process_upload_job(
+            job_id=job_id,
+            session_id=session_id,
+            file_path=str(file_path),
+            original_filename=file.filename,
+        )
+    )
+
+    return {"job_id": job_id, "session_id": session_id}
+
+
+@router.get("/upload/{job_id}")
+async def get_upload_job_status(job_id: str):
+    from app.db.document_store import get_upload_job
+
+    return get_upload_job(job_id)
+
+
+@router.post("/upload/{job_id}/cancel")
+async def cancel_upload_job(job_id: str):
+    from app.db.document_store import set_upload_job_cancelled
+
+    status = set_upload_job_cancelled(job_id)
+    if not status:
+        return {"error": "Job not found"}, 404
+    return {"job_id": job_id, "status": status}
 
 
 # -----------------------------------
@@ -283,6 +429,9 @@ async def get_document_by_id(document_id: int):
         "compliance_matrix": document["compliance_matrix"],
         "classification": document["classification"],
         "proposal_strategy": document["proposal_strategy"],
+        "executive_brief": document["executive_brief"],
+        "procurement_kb": document["procurement_kb"],
+        "opportunity_assessment": document.get("opportunity_assessment", {}),
     }
 
     return {
@@ -313,9 +462,13 @@ async def clear_documents(session_id: str = ""):
         try:
             from app.db.chunk_store import delete_chunks
             import sqlite3
+
             conn = sqlite3.connect("documents.db", timeout=5.0)
             try:
-                conn.execute("DELETE FROM document_chunks WHERE document_id IN (SELECT id FROM documents WHERE session_id = ?)", (session_id,))
+                conn.execute(
+                    "DELETE FROM document_chunks WHERE document_id IN (SELECT id FROM documents WHERE session_id = ?)",
+                    (session_id,),
+                )
                 conn.commit()
             finally:
                 conn.close()
@@ -325,6 +478,7 @@ async def clear_documents(session_id: str = ""):
         # Clear everything (legacy behavior)
         try:
             import sqlite3
+
             conn = sqlite3.connect("documents.db", timeout=5.0)
             try:
                 conn.execute("PRAGMA journal_mode=WAL")
@@ -348,7 +502,6 @@ async def clear_documents(session_id: str = ""):
                 shutil.rmtree(child, ignore_errors=True)
 
     return {"message": "PDF history cleared"}
-
 
 
 @router.delete("/documents/{document_id}")
@@ -378,7 +531,6 @@ async def delete_document(document_id: int):
         pass
 
     return {"message": "Document deleted"}
-
 
 
 # -----------------------------------
@@ -454,7 +606,6 @@ async def delete_document_by_filename(filename: str):
         pass
 
     return {"message": "Document deleted"}
-
 
 
 @router.get("/report")

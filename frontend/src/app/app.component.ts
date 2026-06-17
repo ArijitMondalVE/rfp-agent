@@ -295,11 +295,12 @@ export class AppComponent implements OnDestroy, OnInit {
 
   ngOnDestroy(): void {}
 
-  private loadRecentDocuments() {
+  private loadRecentDocuments(sessionIdOverride?: string) {
     // Try backend first (source of truth)
-    const sessionId = this.getOrCreateSessionId();
+    const sessionId = sessionIdOverride || this.getOrCreateSessionId();
 
     this.api.getUploadedDocuments(sessionId).subscribe({
+
       next: (res: any) => {
         const docs = res?.documents || res || [];
 
@@ -348,6 +349,33 @@ export class AppComponent implements OnDestroy, OnInit {
   }
 
   onDocumentUploaded(result: any) {
+    // If job completed, reload documents and show latest report
+    if (result?.job_completed) {
+      const backendSessionId = result?.session_id;
+      if (backendSessionId && typeof backendSessionId === 'string') {
+        sessionStorage.setItem('rfp_session_id', backendSessionId);
+        localStorage.setItem('rfp_session_id', backendSessionId);
+        this.activeSessionId = backendSessionId;
+      }
+      // Load recent documents, then get latest report
+      this.loadRecentDocuments(backendSessionId);
+
+      // Load the most recent document's report
+      this.api.getUploadedDocuments(backendSessionId).subscribe({
+        next: (res: any) => {
+          const docs = res?.documents || res || [];
+          if (docs && docs.length > 0) {
+            const latestDoc = docs[0];
+            if (latestDoc?.id) {
+              this.openDocument({ id: latestDoc.id, filename: latestDoc.filename, uploadedAt: Date.now() });
+            }
+          }
+        }
+      });
+      return;
+    }
+
+
     const filename = result?.filename;
     if (!filename || typeof filename !== 'string') return;
 

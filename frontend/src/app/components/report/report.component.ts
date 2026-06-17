@@ -28,6 +28,7 @@ export class ReportComponent {
   @Output() toggleSidebar = new EventEmitter<void>();
 
   latestReport: any | null = null;
+  opportunityAssessment: any = null;
 
   copyStatus: 'idle' | 'copied' | 'failed' = 'idle';
 
@@ -40,6 +41,7 @@ export class ReportComponent {
   classification: Classification | null = null;
 
   proposalStrategy: ProposalStrategy | null = null;
+  executiveBrief = '';
 
   // UI state
   exportError: string | null = null;
@@ -123,6 +125,9 @@ export class ReportComponent {
 
     this.proposalStrategy =
       payload?.proposal_strategy || payload?.report?.proposal_strategy || null;
+
+    this.executiveBrief = payload?.executive_brief || payload?.report?.executive_brief || '';
+    this.opportunityAssessment = payload?.opportunity_assessment || payload?.report?.opportunity_assessment || null;
   }
 
   private downloadBlob(blob: Blob, filename: string) {
@@ -227,7 +232,7 @@ export class ReportComponent {
 
       parts.push('');
     }
-    
+
     if (this.structuredData) {
       parts.push('Structured Data');
 
