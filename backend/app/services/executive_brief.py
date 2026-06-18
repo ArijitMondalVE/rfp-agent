@@ -9,80 +9,184 @@ def generate_executive_brief(
     compliance_matrix,
     classification,
     proposal_strategy,
-    
 ):
 
     prompt = f"""
-You are a Senior Proposal Director.
+You are a Senior Capture Manager, Proposal Director, and Procurement Consultant.
 
-Create an Executive Bid Briefing for leadership.
+Your task is to create an Executive Opportunity Briefing.
 
-The purpose is to allow a Proposal Manager,
-Capture Manager, or Executive Team member
-to understand the opportunity WITHOUT
-reading the full RFP.
+The audience is:
 
-IMPORTANT:
+- CEO
+- VP
+- Capture Manager
+- Proposal Manager
+- Operations Director
 
-- Focus on business value
-- Focus on compliance risks
-- Focus on deadlines
-- Focus on resource requirements
-- Focus on win strategy
-- Focus on bid/no-bid decision support
+The briefing should allow leadership to understand the opportunity WITHOUT reading the RFP.
 
-DO NOT repeat information.
+========================
+CRITICAL RULES
+========================
 
-DO NOT generate empty sections.
+1. Do NOT repeat information across sections.
 
-If information is unavailable:
-"Not specified in RFP"
+2. If a fact is already mentioned,
+   do not restate it elsewhere.
 
+3. Do NOT generate empty sections.
+
+4. Do NOT repeatedly write:
+   "Not specified in the RFP"
+
+Instead:
+
+- Omit the item entirely
+- Or write:
+  "No explicit requirement identified"
+
+5. Focus only on information important
+   for bid decisions.
+
+6. Prioritize:
+
+- Deadlines
+- Compliance requirements
+- Staffing requirements
+- Contract obligations
+- Evaluation criteria
+- Risks
+- Win strategy
+
+7. Consolidate related findings into
+   a single insight whenever possible.
+
+8. If a requirement appears under:
+
+- General Conditions
+- Special Conditions
+- Forms
+- Exhibits
+- Attachments
+- Scope of Work
+- Contract Terms
+
+Treat it as a valid requirement.
+
+9. Highlight all potential disqualifiers.
+
+10. Identify missing information that
+    should be clarified with the agency.
+
+11. Avoid generic statements.
+
+12. Be specific and actionable.
+
+13. Think like a Proposal Director
+    preparing a bid/no-bid briefing.
+
+========================
 OUTPUT FORMAT
+========================
 
-Executive Overview
+# Executive Overview
 
-Opportunity Snapshot
+Provide 5-10 concise bullets summarizing:
 
-Client / Agency
+- Opportunity
+- Client objectives
+- Major requirements
+- Key risks
+- Important deadlines
 
-Solicitation Information
+# Opportunity Snapshot
 
-Key Dates
+Include:
 
-Scope of Work
+- Agency
+- Solicitation Number
+- Solicitation Type
+- Submission Deadline
+- Contract Term
 
-Required Deliverables
+# Critical Deadlines
 
-Staffing Requirements
+List all procurement milestones.
 
-Mandatory Forms
+# Scope & Operational Requirements
 
-Evaluation Criteria
+Summarize:
 
-Insurance Requirements
+- Services required
+- Deliverables
+- Staffing expectations
+- Coverage requirements
+- Operational requirements
 
-Bond Requirements
+# Compliance & Submission Requirements
 
-Licenses & Certifications
+Summarize:
 
-Subcontractor Requirements
+- Mandatory forms
+- Certifications
+- Insurance requirements
+- Bonds
+- Licensing requirements
+- Submission requirements
 
-Contract Terms
+# Risk Assessment
 
-Compliance Risks
+Identify:
 
-Potential Disqualifiers
+- Compliance risks
+- Operational risks
+- Proposal risks
+- Potential disqualifiers
 
-Proposal Challenges
+Assign:
 
-Win Strategy Recommendations
+Risk Level:
+LOW / MEDIUM / HIGH
 
-Bid Recommendation
+# Executive Action Items
 
-Executive Takeaways
+List the 5-10 most important actions
+the proposal team must complete.
 
-DATA:
+Examples:
+
+- Register on procurement portal
+- Prepare mandatory forms
+- Gather insurance certificates
+- Obtain bonding documentation
+- Validate staffing plan
+
+# Win Strategy Recommendations
+
+Provide practical recommendations
+for improving competitiveness.
+
+# Bid Recommendation
+
+Return EXACTLY one:
+
+GO
+
+CONDITIONAL GO
+
+NO GO
+
+Then explain why.
+
+# Executive Takeaways
+
+Provide the 5 most important things
+leadership should remember.
+
+========================
+DATA
+========================
 
 STRUCTURED DATA:
 {json.dumps(structured_data, default=str)}
@@ -98,6 +202,7 @@ CLASSIFICATION:
 
 PROPOSAL STRATEGY:
 {json.dumps(proposal_strategy, default=str)}
+
 """
 
     response = generate_response(
@@ -106,7 +211,8 @@ PROPOSAL STRATEGY:
                 "role": "user",
                 "content": prompt
             }
-        ]
+        ],
+        
     )
 
     return response.choices[0].message.content

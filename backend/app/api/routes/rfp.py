@@ -6,10 +6,12 @@ import sqlite3
 from pathlib import Path
 from datetime import datetime
 
+
 from fastapi import APIRouter, UploadFile, File
 
 from app.services.analysis_orchestrator import run_analysis
 from app.services.executive_brief import generate_executive_brief
+
 from sqlalchemy.orm import Session
 from fastapi.responses import FileResponse
 
@@ -66,9 +68,9 @@ from app.db.chunk_store import save_chunks, get_chunks, delete_chunks
 import uuid
 
 from app.services.vector_store import delete_vector_store_for_session
-from app.services.master_extractor import build_procurement_kb
 from app.services.procurement_kb import build_procurement_kb
 from app.services.opportunity_assessment import assess_opportunity
+import time
 
 # -----------------------------------
 # Router
@@ -165,7 +167,7 @@ async def process_upload_job(
 
         print("BUILDING PROCUREMENT KB...")
         procurement_kb = build_procurement_kb(
-            text=text,
+            chunks=chunks,
             structured_data=structured_data,
             classification=classification,
             strategy=strategy,
@@ -178,9 +180,31 @@ async def process_upload_job(
 
         # Skip slow executive brief + opportunity calls (they hang)
         # Report already has analysis data from earlier steps
-        print("SKIPPING SLOW EXECUTIVE BRIEF + OPPORTUNITY")
-        executive_brief = "Analysis complete"
-        opportunity_assessment = {"error": "skipped"}
+        print("GENERATING EXECUTIVE BRIEF...")
+
+        start = time.time()
+
+        executive_brief = generate_executive_brief(
+            structured_data=structured_data,
+            procurement_kb=procurement_kb,
+            compliance_matrix=compliance_matrix,
+            classification=classification,
+            proposal_strategy=strategy,
+        )
+        print(f"EXECUTIVE BRIEF TIME: " f"{round(time.time() - start, 2)} sec")
+
+        print("EXECUTIVE BRIEF GENERATED")
+
+        print("GENERATING OPPORTUNITY ASSESSMENT...")
+        start = time.time()
+        opportunity_assessment = assess_opportunity(
+            procurement_kb=procurement_kb,
+            compliance_matrix=compliance_matrix,
+            classification=classification,
+            proposal_strategy=strategy,
+        )
+        print(f"OPPORTUNITY ASSESSMENT TIME: " f"{round(time.time() - start, 2)} sec")
+        print("OPPORTUNITY ASSESSMENT GENERATED")
 
         if await _check_upload_cancelled(job_id):
             return

@@ -51,7 +51,7 @@ TEXT (first 12K chars):
     try:
         response = generate_response(
             messages=[{"role": "user", "content": prompt}],
-            response_format={"type": "json_object"}
+            response_format={"type": "json_object"},
         )
         content = response.choices[0].message.content.strip()
         result = json.loads(content)
@@ -69,11 +69,13 @@ TEXT (first 12K chars):
             "staffing": [],
             "evaluation": [],
             "contract": [],
-            "disqualifiers": []
+            "disqualifiers": [],
         }
 
 
-def build_procurement_kb(text, structured_data=None, classification=None, strategy=None):
+def build_procurement_kb(
+    chunks, structured_data=None, classification=None, strategy=None
+):
     """
     Build procurement knowledge base using efficient SINGLE call extractor.
     This replaces 7 slow sequential agent calls with 1 fast call.

@@ -19,7 +19,7 @@ MODEL_GROQ = os.getenv(
 
 MODEL_OPENAI = os.getenv(
     "MODEL_OPENAI",
-    "gpt-4o-mini"
+    "gpt-4.1-mini"
 )
 
 

@@ -5,6 +5,13 @@ from app.agents.staffing_agent import extract_staffing
 from app.agents.evaluation_agent import extract_evaluation
 from app.agents.contract_agent import extract_contract_terms
 from app.agents.disqualifier_agent import extract_disqualifiers
+from app.agents.compliance_requirement_agent import (
+    extract_compliance_requirements
+)
+from app.agents.qualification_agent import (
+    extract_qualifications
+)
+
 
 
 def clean_empty(value):
@@ -26,11 +33,53 @@ def clean_empty(value):
 
 
 def build_procurement_kb(
-    text: str,
+    chunks,
     structured_data: dict,
     classification: dict,
     strategy: dict,
 ):
+
+
+    full_text = "\n\n".join(
+    chunk.page_content
+    for chunk in chunks
+    )   
+
+
+    deadline_text = get_relevant_text(
+    chunks,
+    [
+        "deadline",
+        "due date",
+        "submission",
+        "schedule",
+        "timeline",
+        "pre-bid",
+        "questions due"
+    ]
+    )
+
+    forms_text = get_relevant_text(
+    chunks,
+    [
+        "form",
+        "affidavit",
+        "attachment",
+        "exhibit",
+        "certification",
+        "questionnaire"
+    ]
+    )
+
+    insurance_text = get_relevant_text(
+    chunks,
+    [
+        "insurance",
+        "coverage",
+        "liability",
+        "workers compensation"
+    ]
+        )
 
     kb = {
 
@@ -46,28 +95,28 @@ def build_procurement_kb(
 
         "contract_term":
             structured_data.get("contract_term"),
-
+    
         # Specialized Agent Outputs
         "deadlines":
-            extract_deadlines(text),
+            extract_deadlines(deadline_text),
 
         "forms":
-            extract_forms(text),
+            extract_forms(forms_text),
 
         "insurance":
-            extract_insurance(text),
+            extract_insurance(insurance_text),
 
         "staffing":
-            extract_staffing(text),
+            extract_staffing(full_text),
 
         "evaluation":
-            extract_evaluation(text),
+            extract_evaluation(full_text),
 
         "contract":
-            extract_contract_terms(text),
+            extract_contract_terms(full_text),
 
         "disqualifiers":
-            extract_disqualifiers(text),
+            extract_disqualifiers(full_text),
 
         # Existing Strategy Data
         "bid_recommendation":
@@ -80,7 +129,13 @@ def build_procurement_kb(
             strategy.get("risks", []),
 
         "critical_items":
-            strategy.get("critical_items", [])
+            strategy.get("critical_items", []),
+
+        "compliance_requirements":
+            extract_compliance_requirements(full_text),
+
+        "qualifications":
+            extract_qualifications(full_text),  
     }
 
     # Remove empty values
@@ -115,6 +170,29 @@ def build_procurement_kb(
 
         "critical_item_count":
             len(kb.get("critical_items", [])),
+
+        "compliance_count":
+            len(kb.get("compliance_requirements", [])),
+
+        "qualification_count":
+            len(kb.get("qualifications", [])),   
     }
 
     return kb
+
+
+def get_relevant_text(chunks, keywords):
+
+    selected = []
+
+    for chunk in chunks:
+
+        content = chunk.page_content.lower()
+
+        if any(
+            keyword.lower() in content
+            for keyword in keywords
+        ):
+            selected.append(chunk.page_content)
+
+    return "\n\n".join(selected)

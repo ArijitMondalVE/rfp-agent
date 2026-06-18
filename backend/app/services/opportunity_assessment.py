@@ -1,4 +1,5 @@
 import json
+from urllib import response
 
 from app.services.llm_utils import generate_response
 
@@ -51,7 +52,13 @@ PROPOSAL STRATEGY:
     response = generate_response(messages=[{"role": "user", "content": prompt}])
 
     try:
-        return json.loads(response.choices[0].message.content)
+        content = response.choices[0].message.content
+
+        content = content.replace("```json", "")
+
+        content = content.replace("```", "").strip()
+
+        return json.loads(content)
     except Exception as e:
         print(f"Opportunity Assessment Error: {e}")
         return {

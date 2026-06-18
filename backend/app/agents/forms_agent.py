@@ -6,7 +6,9 @@ from app.services.llm_utils import generate_response
 def extract_forms(text: str):
 
     prompt = f"""
-Extract ALL mandatory forms.
+You are a Procurement Compliance Expert.
+
+Extract ALL mandatory bidder forms.
 
 Return JSON only.
 
@@ -14,9 +16,32 @@ Return JSON only.
   {{
     "form": "",
     "required": true,
-    "page": ""
+    "page": "",
+    "source_text": "",
+    "confidence": "HIGH"
   }}
 ]
+
+Include:
+
+- Affidavits
+- Certifications
+- Attachments
+- Exhibits
+- Questionnaires
+- Disclosure Forms
+- Vendor Forms
+- Bid Forms
+
+Rules:
+
+- Extract only explicitly required forms
+- Include page number if available
+- Include the exact sentence or clause where the requirement was found
+- Confidence must be:
+  HIGH
+  MEDIUM
+  LOW
 
 Examples:
 
@@ -24,10 +49,12 @@ Examples:
 - Ownership Disclosure
 - E-Verify
 - Vendor Questionnaire
+- Non-Collusion Affidavit
+- Drug-Free Workplace Form
 
 TEXT:
 
-{text[:15000]}
+{text}
 """
 
     response = generate_response(
@@ -36,12 +63,35 @@ TEXT:
                 "role": "user",
                 "content": prompt
             }
-        ]
+        ],
+        temperature=0
     )
 
     try:
-        return json.loads(
-            response.choices[0].message.content
+
+        content = response.choices[0].message.content
+
+        content = content.replace(
+            "```json",
+            ""
         )
-    except:
+
+        content = content.replace(
+            "```",
+            ""
+        ).strip()
+
+        data = json.loads(content)
+
+        if not isinstance(data, list):
+            return []
+
+        return data
+
+    except Exception as e:
+
+        print(
+            f"Forms Agent Error: {e}"
+        )
+
         return []

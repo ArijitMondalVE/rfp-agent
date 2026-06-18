@@ -6,7 +6,9 @@ from app.services.llm_utils import generate_response
 def extract_deadlines(text: str):
 
     prompt = f"""
-Extract ALL important procurement dates.
+You are a Procurement Schedule Extraction Expert.
+
+Extract ALL procurement-related dates and milestones.
 
 Return JSON only.
 
@@ -14,21 +16,37 @@ Return JSON only.
   {{
     "event": "",
     "date": "",
-    "page": ""
+    "page": "",
+    "source_text": "",
+    "confidence": "HIGH"
   }}
 ]
+
+Rules:
+
+- Extract exact dates whenever possible
+- Include page number if available
+- Include the sentence or clause where the date was found
+- Do NOT invent dates
+- Return only valid JSON
+- Confidence must be:
+  HIGH
+  MEDIUM
+  LOW
 
 Examples:
 
 - Bid Due Date
-- Questions Due
+- Questions Due Date
 - Pre-Bid Conference
 - Site Visit
-- Contract Start
+- Contract Start Date
+- Proposal Submission Deadline
+- Award Date
 
 TEXT:
 
-{text[:15000]}
+{text}
 """
 
     response = generate_response(
@@ -37,12 +55,35 @@ TEXT:
                 "role": "user",
                 "content": prompt
             }
-        ]
+        ],
+        temperature=0
     )
 
     try:
-        return json.loads(
-            response.choices[0].message.content
+
+        content = response.choices[0].message.content
+
+        content = content.replace(
+            "```json",
+            ""
         )
-    except:
+
+        content = content.replace(
+            "```",
+            ""
+        ).strip()
+
+        data = json.loads(content)
+
+        if not isinstance(data, list):
+            return []
+
+        return data
+
+    except Exception as e:
+
+        print(
+            f"Deadline Agent Error: {e}"
+        )
+
         return []

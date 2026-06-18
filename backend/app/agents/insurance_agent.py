@@ -6,7 +6,9 @@ from app.services.llm_utils import generate_response
 def extract_insurance(text: str):
 
     prompt = f"""
-Extract all insurance requirements.
+You are a Procurement Insurance Compliance Expert.
+
+Extract ALL insurance requirements.
 
 Return JSON only.
 
@@ -14,13 +16,35 @@ Return JSON only.
   {{
     "coverage": "",
     "limit": "",
-    "page": ""
+    "page": "",
+    "source_text": "",
+    "confidence": "HIGH"
   }}
 ]
 
+Include:
+
+- General Liability
+- Workers Compensation
+- Professional Liability
+- Cyber Insurance
+- Auto Liability
+- Umbrella Coverage
+- Errors & Omissions
+
+Rules:
+
+- Extract exact coverage limits whenever available
+- Include page number if available
+- Include the exact sentence or clause where the requirement was found
+- Confidence must be:
+  HIGH
+  MEDIUM
+  LOW
+
 TEXT:
 
-{text[:15000]}
+{text}
 """
 
     response = generate_response(
@@ -29,12 +53,35 @@ TEXT:
                 "role": "user",
                 "content": prompt
             }
-        ]
+        ],
+        temperature=0
     )
 
     try:
-        return json.loads(
-            response.choices[0].message.content
+
+        content = response.choices[0].message.content
+
+        content = content.replace(
+            "```json",
+            ""
         )
-    except:
+
+        content = content.replace(
+            "```",
+            ""
+        ).strip()
+
+        data = json.loads(content)
+
+        if not isinstance(data, list):
+            return []
+
+        return data
+
+    except Exception as e:
+
+        print(
+            f"Insurance Agent Error: {e}"
+        )
+
         return []
