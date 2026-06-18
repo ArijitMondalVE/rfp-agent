@@ -54,7 +54,6 @@ TEXT:
                 "content": prompt
             }
         ],
-        temperature=0
     )
 
     try:

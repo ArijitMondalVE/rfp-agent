@@ -4,37 +4,32 @@ from app.services.llm_provider import openai_client
 
 def generate_response(
     messages,
-    temperature=0,
+    temperature=None,
     stream=False,
     response_format=None,
     provider: str = "openai",
+    model=None,
 ):
-    """Generate OpenAI LLM response.
-
-    Args:
-        messages: OpenAI-format messages
-        temperature: Sampling temperature (default 0)
-        stream: Enable streaming (default False)
-        response_format: JSON schema for structured output
-        provider: 'openai' only (kept for signature compatibility)
-
-    Returns:
-        OpenAI ChatCompletion response
     """
-    # Always use OpenAI
-    model = MODEL_OPENAI
+    Generate OpenAI response.
+    """
+
+    model = model or MODEL_OPENAI
 
     params = {
         "model": model,
         "messages": messages,
         "stream": stream,
     }
+
     if response_format:
         params["response_format"] = response_format
-    if temperature:
+
+    # Only send temperature if explicitly provided
+    if temperature is not None:
         params["temperature"] = temperature
 
-    # OpenAI client call without a timeout can hang indefinitely.
-    # The OpenAI Python SDK supports httpx timeouts via the `timeout` kwarg.
-    # We keep it conservative for large prompts.
-    return openai_client.chat.completions.create(timeout=180, **params)
+    return openai_client.chat.completions.create(
+        timeout=180,
+        **params
+    )

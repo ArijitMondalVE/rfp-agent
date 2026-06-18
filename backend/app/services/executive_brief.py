@@ -212,7 +212,7 @@ PROPOSAL STRATEGY:
                 "content": prompt
             }
         ],
-        
+        model="gpt-4o",
     )
 
     return response.choices[0].message.content
