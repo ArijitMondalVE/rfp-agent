@@ -58,7 +58,7 @@ def chat_with_fallback(messages: list, preferred_provider: str = None) -> dict:
         response = provider_client.chat.completions.create(
             model=model,
             messages=messages,
-            temperature=0.1,
+            
         )
         return response.model_dump()
 
@@ -76,7 +76,7 @@ def chat_with_fallback(messages: list, preferred_provider: str = None) -> dict:
             response = fallback_client.chat.completions.create(
                 model=fallback_model,
                 messages=messages,
-                temperature=0.1,
+             
             )
             return response.modeldump()
 

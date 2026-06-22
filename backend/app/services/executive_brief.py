@@ -194,7 +194,7 @@ STRUCTURED DATA:
 PROCUREMENT KNOWLEDGE BASE:
 {json.dumps(procurement_kb, default=str)}
 
-COMPLIANCE MATRIX:
+COMPLIANCE MATRIX: 
 {json.dumps(compliance_matrix, default=str)}
 
 CLASSIFICATION:
